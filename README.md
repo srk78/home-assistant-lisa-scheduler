@@ -2,6 +2,10 @@
 
 A Home Assistant custom integration that automatically controls heating based on a field hockey club's schedule. The integration scrapes event schedules from a website and intelligently heats the club building before training sessions and matches.
 
+**🏑 Specifically configured for Zandvoortsche Hockey Club (ZHC)** - Includes custom scraper for the LISA-powered schedule system used at https://www.zandvoortschehockeyclub.nl
+
+> **Quick Start for ZHC**: See [ZHC_SETUP_GUIDE.md](ZHC_SETUP_GUIDE.md) for step-by-step instructions specific to ZHC's website.
+
 ## Features
 
 - **Automatic Schedule Scraping**: Fetches events from your club's website
@@ -14,6 +18,8 @@ A Home Assistant custom integration that automatically controls heating based on
 - **Plugwise Integration**: Designed to work with Plugwise SA thermostats
 
 ## Installation
+
+> **For ZHC members**: Follow the [ZHC Setup Guide](ZHC_SETUP_GUIDE.md) for detailed instructions with the ZHC-specific scraper.
 
 ### HACS (Recommended)
 
@@ -179,6 +185,15 @@ entities:
 ```
 
 ## Customizing the Scraper
+
+### For ZHC (Zandvoortsche Hockey Club)
+
+A custom scraper is **already included** for ZHC's LISA-powered website:
+- See [ZHC_SETUP_GUIDE.md](ZHC_SETUP_GUIDE.md) for setup instructions
+- The scraper handles both training and match schedules
+- Includes a test script to verify it works
+
+### For Other Clubs
 
 The default scraper uses generic HTML parsing to find events. If your club's website has a specific format, you can customize the scraper:
 
