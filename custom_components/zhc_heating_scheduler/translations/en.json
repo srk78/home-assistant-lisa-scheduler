@@ -1,0 +1,76 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ZHC Heating Scheduler",
+        "description": "Set up the heating scheduler for your field hockey club.",
+        "data": {
+          "schedule_url": "Schedule URL",
+          "climate_entity": "Climate Entity",
+          "pre_heat_hours": "Pre-heat time (hours)",
+          "cool_down_minutes": "Cool-down time (minutes)",
+          "target_temperature": "Target temperature (°C)",
+          "scan_interval": "Schedule refresh interval (seconds)",
+          "dry_run": "Dry run mode (log only, don't control heating)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the schedule URL",
+      "invalid_url": "Invalid schedule URL",
+      "invalid_climate_entity": "Climate entity not found",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ZHC Heating Scheduler Options",
+        "data": {
+          "pre_heat_hours": "Pre-heat time (hours)",
+          "cool_down_minutes": "Cool-down time (minutes)",
+          "target_temperature": "Target temperature (°C)",
+          "scan_interval": "Schedule refresh interval (seconds)",
+          "enabled": "Enable scheduler",
+          "dry_run": "Dry run mode (log only, don't control heating)"
+        }
+      }
+    }
+  },
+  "services": {
+    "refresh_schedule": {
+      "name": "Refresh Schedule",
+      "description": "Force a refresh of the event schedule from the website."
+    },
+    "enable": {
+      "name": "Enable Scheduler",
+      "description": "Enable the heating scheduler."
+    },
+    "disable": {
+      "name": "Disable Scheduler",
+      "description": "Disable the heating scheduler."
+    },
+    "set_override": {
+      "name": "Set Override",
+      "description": "Manually override the heating schedule.",
+      "fields": {
+        "start_time": {
+          "name": "Start Time",
+          "description": "When to start heating (ISO format)"
+        },
+        "end_time": {
+          "name": "End Time",
+          "description": "When to stop heating (ISO format)"
+        }
+      }
+    },
+    "clear_override": {
+      "name": "Clear Override",
+      "description": "Clear any manual override and resume normal scheduling."
+    }
+  }
+}
+

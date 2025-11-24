@@ -1,0 +1,35 @@
+refresh_schedule:
+  name: Refresh Schedule
+  description: Force a refresh of the event schedule from the website.
+
+enable:
+  name: Enable Scheduler
+  description: Enable the heating scheduler.
+
+disable:
+  name: Disable Scheduler
+  description: Disable the heating scheduler.
+
+set_override:
+  name: Set Manual Override
+  description: Manually override the heating schedule for a specific time period.
+  fields:
+    start_time:
+      name: Start Time
+      description: When to start heating (ISO format datetime).
+      required: true
+      example: "2024-11-24T14:00:00"
+      selector:
+        datetime:
+    end_time:
+      name: End Time
+      description: When to stop heating (ISO format datetime).
+      required: true
+      example: "2024-11-24T18:00:00"
+      selector:
+        datetime:
+
+clear_override:
+  name: Clear Manual Override
+  description: Clear any manual override and resume normal scheduling.
+
