@@ -1,0 +1,5 @@
+{
+    "name": "ZHC Heating Scheduler",
+    "homeassistant": "2024.1.0",
+    "hacs": "2.0.0"
+}
