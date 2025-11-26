@@ -47,3 +47,28 @@ UPDATE_INTERVAL_STATE = 60  # 1 minute for state checks
 # Logging
 LOGGER_NAME = "custom_components.zhc_heating_scheduler"
 
+# Scraper configuration
+CONF_SCRAPER_SOURCES = "scraper_sources"
+CONF_DATE_FORMAT = "date_format"
+CONF_TIME_FORMAT = "time_format"
+CONF_TIMEZONE = "timezone"
+
+# Scraper source configuration keys
+CONF_SOURCE_URL = "url"
+CONF_SOURCE_TYPE = "type"
+CONF_SOURCE_METHOD = "method"
+CONF_SOURCE_SELECTORS = "selectors"
+CONF_SOURCE_API_ENDPOINT = "api_endpoint"
+CONF_SOURCE_API_HEADERS = "api_headers"
+CONF_SOURCE_API_PARAMS = "api_params"
+
+# Scraper methods
+SCRAPER_METHOD_HTML = "html"
+SCRAPER_METHOD_API = "api"
+SCRAPER_METHOD_ICAL = "ical"
+
+# Default scraper settings
+DEFAULT_DATE_FORMAT = "%d-%m-%Y"
+DEFAULT_TIME_FORMAT = "%H:%M"
+DEFAULT_TIMEZONE = "Europe/Amsterdam"
+

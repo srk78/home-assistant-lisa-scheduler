@@ -17,9 +17,20 @@ from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, UPDATE_INTERVAL_SCHEDULE
+from .const import (
+    CONF_SCRAPER_SOURCES,
+    CONF_DATE_FORMAT,
+    CONF_TIME_FORMAT,
+    CONF_TIMEZONE,
+    DEFAULT_DATE_FORMAT,
+    DEFAULT_TIME_FORMAT,
+    DEFAULT_TIMEZONE,
+    DOMAIN,
+    UPDATE_INTERVAL_SCHEDULE,
+)
 from .scheduler import HeatingScheduler, HeatingWindow
 from .scraper import Event, ScheduleScraper
+from .configurable_scraper import ConfigurableScraper
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +49,10 @@ class ZHCHeatingCoordinator(DataUpdateCoordinator):
         scan_interval: int,
         enabled: bool = True,
         dry_run: bool = False,
+        scraper_sources: list[dict] | None = None,
+        date_format: str = DEFAULT_DATE_FORMAT,
+        time_format: str = DEFAULT_TIME_FORMAT,
+        timezone: str = DEFAULT_TIMEZONE,
     ):
         """Initialize the coordinator."""
         super().__init__(
@@ -59,7 +74,20 @@ class ZHCHeatingCoordinator(DataUpdateCoordinator):
 
         # Initialize scraper
         self._session = aiohttp.ClientSession()
-        self.scraper = ScheduleScraper(schedule_url, self._session)
+        
+        # Use configurable scraper if sources are provided, otherwise use simple scraper
+        if scraper_sources:
+            _LOGGER.info("Using configurable scraper with %d sources", len(scraper_sources))
+            self.scraper = ConfigurableScraper(
+                sources=scraper_sources,
+                date_format=date_format,
+                time_format=time_format,
+                timezone=timezone,
+                session=self._session
+            )
+        else:
+            _LOGGER.info("Using basic scraper for URL: %s", schedule_url)
+            self.scraper = ScheduleScraper(schedule_url, self._session)
 
         # State tracking
         self.events: list[Event] = []
