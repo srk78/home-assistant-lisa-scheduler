@@ -1,4 +1,4 @@
-"""Sensor platform for ZHC Heating Scheduler."""
+"""Sensor platform for ZHC Scheduler."""
 from __future__ import annotations
 
 import logging
@@ -25,25 +25,20 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up ZHC Heating Scheduler sensors."""
     coordinator: ZHCHeatingCoordinator = hass.data[DOMAIN][config_entry.entry_id]
-
-    sensors = [
-        ZHCNextHeatingStartSensor(coordinator, config_entry),
-        ZHCNextHeatingStopSensor(coordinator, config_entry),
+    async_add_entities([
+        ZHCNextWindowStartSensor(coordinator, config_entry),
+        ZHCNextWindowEndSensor(coordinator, config_entry),
+        ZHCNextEventStartSensor(coordinator, config_entry),
         ZHCCurrentEventSensor(coordinator, config_entry),
         ZHCEventsTodaySensor(coordinator, config_entry),
-        ZHCHeatingMinutesTodaySensor(coordinator, config_entry),
+        ZHCWindowMinutesTodaySensor(coordinator, config_entry),
         ZHCTotalWindowsSensor(coordinator, config_entry),
         ZHCLastUpdateSensor(coordinator, config_entry),
-    ]
-
-    async_add_entities(sensors)
+    ])
 
 
 class ZHCSchedulerSensorBase(CoordinatorEntity, SensorEntity):
-    """Base class for ZHC Heating Scheduler sensors."""
-
     def __init__(
         self,
         coordinator: ZHCHeatingCoordinator,
@@ -51,144 +46,117 @@ class ZHCSchedulerSensorBase(CoordinatorEntity, SensorEntity):
         sensor_type: str,
         name: str,
     ) -> None:
-        """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_type}"
         self._attr_name = f"ZHC {name}"
         self._attr_has_entity_name = True
 
 
-class ZHCNextHeatingStartSensor(ZHCSchedulerSensorBase):
-    """Sensor for next heating start time."""
+class ZHCNextWindowStartSensor(ZHCSchedulerSensorBase):
+    """Timestamp when the next (or current) pre-event window starts."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "next_heating_start", "Next Heating Start"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "next_window_start", "Next Window Start")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-start"
 
     @property
     def native_value(self) -> datetime | None:
-        """Return the next heating start time."""
         if not self.coordinator.data:
             return None
-
         summary = self.coordinator.data.get("summary", {})
-        
-        # If currently heating, return the start time of current window
-        if summary.get("is_heating"):
-            current_window = summary.get("current_window")
-            if current_window:
-                return datetime.fromisoformat(current_window["start_time"])
-        
-        # Otherwise return next window start
-        next_window = summary.get("next_window")
-        if next_window:
-            return datetime.fromisoformat(next_window["start_time"])
-
+        if summary.get("is_window_active"):
+            current = summary.get("current_window")
+            if current:
+                return datetime.fromisoformat(current["window_start"])
+        next_w = summary.get("next_window")
+        if next_w:
+            return datetime.fromisoformat(next_w["window_start"])
         return None
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes."""
         if not self.coordinator.data:
             return {}
-
         summary = self.coordinator.data.get("summary", {})
-        next_window = summary.get("next_window")
-
-        if next_window:
+        window = summary.get("current_window") or summary.get("next_window")
+        if window:
             return {
-                "event_count": next_window.get("event_count", 0),
-                "duration_minutes": next_window.get("duration_minutes", 0),
+                "event_count": window.get("event_count", 0),
+                "pre_event_minutes": window.get("pre_event_minutes", 0),
             }
-
         return {}
 
 
-class ZHCNextHeatingStopSensor(ZHCSchedulerSensorBase):
-    """Sensor for next heating stop time."""
+class ZHCNextWindowEndSensor(ZHCSchedulerSensorBase):
+    """Timestamp when the next (or current) window ends."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "next_heating_stop", "Next Heating Stop"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "next_window_end", "Next Window End")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-end"
 
     @property
     def native_value(self) -> datetime | None:
-        """Return the next heating stop time."""
         if not self.coordinator.data:
             return None
-
         summary = self.coordinator.data.get("summary", {})
-        
-        # If currently heating, return current window end time
-        if summary.get("is_heating"):
-            current_window = summary.get("current_window")
-            if current_window:
-                return datetime.fromisoformat(current_window["end_time"])
+        if summary.get("is_window_active"):
+            current = summary.get("current_window")
+            if current:
+                return datetime.fromisoformat(current["window_end"])
+        next_w = summary.get("next_window")
+        if next_w:
+            return datetime.fromisoformat(next_w["window_end"])
+        return None
 
-        # Otherwise return next window end
-        next_window = summary.get("next_window")
-        if next_window:
-            return datetime.fromisoformat(next_window["end_time"])
 
+class ZHCNextEventStartSensor(ZHCSchedulerSensorBase):
+    """Timestamp when the next actual event starts."""
+
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "next_event_start", "Next Event Start")
+        self._attr_device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_icon = "mdi:calendar-arrow-right"
+
+    @property
+    def native_value(self) -> datetime | None:
+        if not self.coordinator.data:
+            return None
+        summary = self.coordinator.data.get("summary", {})
+        window = summary.get("current_window") or summary.get("next_window")
+        if window:
+            return datetime.fromisoformat(window["event_start"])
         return None
 
 
 class ZHCCurrentEventSensor(ZHCSchedulerSensorBase):
-    """Sensor for current or next event details."""
+    """Name of the current or next event."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "current_event", "Current Event"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "current_event", "Current Event")
         self._attr_icon = "mdi:calendar"
 
     @property
     def native_value(self) -> str:
-        """Return the current or next event name."""
         if not self.coordinator.data:
             return "No events"
-
         summary = self.coordinator.data.get("summary", {})
-        
-        # Get current or next window
         window = summary.get("current_window") or summary.get("next_window")
-        
         if window and window.get("events"):
-            events = window["events"]
-            if events:
-                first_event = events[0]
-                return first_event.get("title", "Unknown event")
-
+            first = window["events"][0]
+            return first.get("title", "Unknown event")
         return "No upcoming events"
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes."""
         if not self.coordinator.data:
             return {}
-
         summary = self.coordinator.data.get("summary", {})
         window = summary.get("current_window") or summary.get("next_window")
-
         if window and window.get("events"):
-            events = window["events"]
             return {
-                "event_count": len(events),
+                "event_count": len(window["events"]),
                 "events": [
                     {
                         "title": e.get("title", ""),
@@ -196,128 +164,89 @@ class ZHCCurrentEventSensor(ZHCSchedulerSensorBase):
                         "start_time": e.get("start_time", ""),
                         "end_time": e.get("end_time", ""),
                     }
-                    for e in events
+                    for e in window["events"]
                 ],
-                "window_start": window.get("start_time"),
-                "window_end": window.get("end_time"),
+                "window_start": window.get("window_start"),
+                "event_start": window.get("event_start"),
+                "window_end": window.get("window_end"),
             }
-
         return {}
 
 
 class ZHCEventsTodaySensor(ZHCSchedulerSensorBase):
-    """Sensor for number of events today."""
+    """Number of event windows today."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "events_today", "Events Today"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "events_today", "Events Today")
         self._attr_icon = "mdi:calendar-today"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self) -> int:
-        """Return the number of heating windows today."""
         if not self.coordinator.data:
             return 0
-
-        summary = self.coordinator.data.get("summary", {})
-        return summary.get("windows_today", 0)
+        return self.coordinator.data.get("summary", {}).get("windows_today", 0)
 
 
-class ZHCHeatingMinutesTodaySensor(ZHCSchedulerSensorBase):
-    """Sensor for total heating minutes today."""
+class ZHCWindowMinutesTodaySensor(ZHCSchedulerSensorBase):
+    """Total minutes inside event windows today."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "heating_minutes_today", "Heating Minutes Today"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "window_minutes_today", "Window Minutes Today")
         self._attr_icon = "mdi:timer"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = "min"
 
     @property
     def native_value(self) -> int:
-        """Return the total heating minutes today."""
         if not self.coordinator.data:
             return 0
-
-        summary = self.coordinator.data.get("summary", {})
-        return summary.get("total_heating_minutes_today", 0)
+        return self.coordinator.data.get("summary", {}).get("total_window_minutes_today", 0)
 
 
 class ZHCTotalWindowsSensor(ZHCSchedulerSensorBase):
-    """Sensor for total number of heating windows."""
+    """Total number of upcoming event windows."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "total_windows", "Total Heating Windows"
-        )
-        self._attr_icon = "mdi:window-open"
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "total_windows", "Total Event Windows")
+        self._attr_icon = "mdi:calendar-multiselect"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
     def native_value(self) -> int:
-        """Return the total number of heating windows."""
         if not self.coordinator.data:
             return 0
-
-        summary = self.coordinator.data.get("summary", {})
-        return summary.get("total_windows", 0)
+        return self.coordinator.data.get("summary", {}).get("total_windows", 0)
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes."""
         if not self.coordinator.data:
             return {}
-
-        return {
-            "heating_windows": self.coordinator.data.get("heating_windows", []),
-        }
+        return {"event_windows": self.coordinator.data.get("event_windows", [])}
 
 
 class ZHCLastUpdateSensor(ZHCSchedulerSensorBase):
-    """Sensor for last schedule update time."""
+    """Timestamp of the last schedule fetch."""
 
-    def __init__(
-        self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator, config_entry, "last_update", "Last Schedule Update"
-        )
+    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+        super().__init__(coordinator, config_entry, "last_update", "Last Schedule Update")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:update"
 
     @property
     def native_value(self) -> datetime | None:
-        """Return the last update time."""
         if not self.coordinator.data:
             return None
-
         last_update = self.coordinator.data.get("last_schedule_update")
         if last_update:
             return datetime.fromisoformat(last_update)
-
         return None
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return additional attributes."""
         if not self.coordinator.data:
             return {}
-
         return {
             "last_error": self.coordinator.data.get("last_error"),
             "event_count": len(self.coordinator.data.get("events", [])),
         }
-

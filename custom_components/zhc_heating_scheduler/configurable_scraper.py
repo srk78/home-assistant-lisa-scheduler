@@ -102,8 +102,8 @@ class ConfigurableScraper(ScheduleScraper):
                     exc_info=True
                 )
         
-        # Filter by date range
-        cutoff_date = datetime.now(self.timezone) + timedelta(days=days_ahead)
+        # Filter by date range (naive, matching coordinator and scheduler)
+        cutoff_date = datetime.now() + timedelta(days=days_ahead)
         filtered_events = [
             event for event in all_events
             if event.start_time <= cutoff_date
@@ -305,7 +305,7 @@ class ConfigurableScraper(ScheduleScraper):
                 # Parse time range
                 start_time_str = time_range_match.group(1)
                 end_time_str = time_range_match.group(2)
-                
+
                 start_time = datetime.strptime(
                     f"{date_str} {start_time_str}",
                     f"{self.date_format} {self.time_format}"
@@ -321,11 +321,9 @@ class ConfigurableScraper(ScheduleScraper):
                     f"{self.date_format} {self.time_format}"
                 )
                 end_time = start_time + timedelta(hours=2)
-            
-            # Localize to configured timezone
-            start_time = self.timezone.localize(start_time)
-            end_time = self.timezone.localize(end_time)
-            
+
+            # Return naive datetimes to stay consistent with the rest of the codebase.
+            # The strptime result is already in the club's local time; no localization needed.
             return start_time, end_time
             
         except Exception as e:
@@ -362,21 +360,21 @@ class ConfigurableScraper(ScheduleScraper):
                     # Try to parse ISO format or use flexible parser
                     try:
                         start_time = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
-                    except:
+                    except Exception:
                         start_time = date_parser.parse(start_str)
-                    
-                    # Ensure timezone
-                    if start_time.tzinfo is None:
-                        start_time = self.timezone.localize(start_time)
-                    
+
+                    # Normalise to naive local time (club timezone)
+                    if start_time.tzinfo is not None:
+                        start_time = start_time.astimezone(self.timezone).replace(tzinfo=None)
+
                     if end_str:
                         try:
                             end_time = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
-                        except:
+                        except Exception:
                             end_time = date_parser.parse(end_str)
-                        
-                        if end_time.tzinfo is None:
-                            end_time = self.timezone.localize(end_time)
+
+                        if end_time.tzinfo is not None:
+                            end_time = end_time.astimezone(self.timezone).replace(tzinfo=None)
                     else:
                         # Default duration
                         duration = 2 if event_type == EVENT_TYPE_TRAINING else 1.5
@@ -413,23 +411,19 @@ class ConfigurableScraper(ScheduleScraper):
                     title = str(component.get('summary', ''))
                     location = str(component.get('location', ''))
                     
-                    # Ensure datetime objects
+                    # Normalise to naive datetime in the club's local timezone
                     if isinstance(start_time, datetime):
-                        if start_time.tzinfo is None:
-                            start_time = self.timezone.localize(start_time)
+                        if start_time.tzinfo is not None:
+                            start_time = start_time.astimezone(self.timezone).replace(tzinfo=None)
                     else:
-                        # Date only, convert to datetime
-                        start_time = self.timezone.localize(
-                            datetime.combine(start_time, datetime.min.time())
-                        )
-                    
+                        # Date only — convert to midnight, naive
+                        start_time = datetime.combine(start_time, datetime.min.time())
+
                     if isinstance(end_time, datetime):
-                        if end_time.tzinfo is None:
-                            end_time = self.timezone.localize(end_time)
+                        if end_time.tzinfo is not None:
+                            end_time = end_time.astimezone(self.timezone).replace(tzinfo=None)
                     else:
-                        end_time = self.timezone.localize(
-                            datetime.combine(end_time, datetime.min.time())
-                        )
+                        end_time = datetime.combine(end_time, datetime.min.time())
                     
                     event = Event(
                         event_type=event_type,

@@ -240,18 +240,19 @@ class ScheduleScraper:
             # Look for date patterns
             if not date_str and self._looks_like_date(text):
                 date_str = text
-                
+
             # Look for time patterns
             if not time_str and self._looks_like_time(text):
                 time_str = text
-                
-            # Look for event type indicators
-            if "training" in text.lower() or "train" in text.lower():
-                event_type = EVENT_TYPE_TRAINING
-                title = text
-            elif "match" in text.lower() or "wedstrijd" in text.lower():
-                event_type = EVENT_TYPE_MATCH
-                title = text
+
+            # Look for event type indicators — only set on first match
+            if event_type == EVENT_TYPE_UNKNOWN:
+                if "training" in text.lower() or "train" in text.lower():
+                    event_type = EVENT_TYPE_TRAINING
+                    title = text
+                elif "match" in text.lower() or "wedstrijd" in text.lower():
+                    event_type = EVENT_TYPE_MATCH
+                    title = text
                 
         if date_str and time_str:
             start_time, end_time = self._parse_datetime(date_str, time_str)

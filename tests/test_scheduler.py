@@ -1,17 +1,17 @@
-"""Tests for the heating scheduler."""
+"""Tests for the event scheduler."""
 import pytest
 from datetime import datetime, timedelta
 
 from custom_components.zhc_heating_scheduler.scheduler import (
-    HeatingWindow,
-    HeatingScheduler,
+    EventWindow,
+    EventScheduler,
 )
-from custom_components.zhc_heating_scheduler.scraper import Event, EVENT_TYPE_TRAINING
+from custom_components.zhc_heating_scheduler.scraper import Event
+from custom_components.zhc_heating_scheduler.const import EVENT_TYPE_TRAINING
 
 
 @pytest.fixture
 def sample_events():
-    """Create sample events for testing."""
     now = datetime.now()
     return [
         Event(
@@ -35,221 +35,195 @@ def sample_events():
     ]
 
 
-def test_heating_window_creation():
-    """Test HeatingWindow creation."""
-    start = datetime(2024, 11, 24, 14, 0)
-    end = datetime(2024, 11, 24, 16, 0)
-    
-    window = HeatingWindow(start, end)
-    
-    assert window.start_time == start
-    assert window.end_time == end
+def test_event_window_creation():
+    window_start = datetime(2024, 11, 24, 12, 0)
+    event_start = datetime(2024, 11, 24, 14, 0)
+    window_end = datetime(2024, 11, 24, 16, 0)
+
+    window = EventWindow(window_start, event_start, window_end)
+
+    assert window.window_start == window_start
+    assert window.event_start == event_start
+    assert window.window_end == window_end
     assert len(window.events) == 0
 
 
-def test_heating_window_overlaps():
-    """Test overlap detection between windows."""
-    window1 = HeatingWindow(
+def test_event_window_overlaps():
+    window1 = EventWindow(
+        datetime(2024, 11, 24, 12, 0),
         datetime(2024, 11, 24, 14, 0),
         datetime(2024, 11, 24, 16, 0),
     )
-    window2 = HeatingWindow(
+    window2 = EventWindow(
         datetime(2024, 11, 24, 15, 0),
+        datetime(2024, 11, 24, 15, 30),
         datetime(2024, 11, 24, 17, 0),
     )
-    window3 = HeatingWindow(
+    window3 = EventWindow(
         datetime(2024, 11, 24, 18, 0),
+        datetime(2024, 11, 24, 19, 0),
         datetime(2024, 11, 24, 20, 0),
     )
-    
+
     assert window1.overlaps(window2) is True
     assert window2.overlaps(window1) is True
     assert window1.overlaps(window3) is False
     assert window3.overlaps(window1) is False
 
 
-def test_heating_window_merge():
-    """Test merging of overlapping windows."""
-    event1 = Event(
-        EVENT_TYPE_TRAINING,
-        datetime(2024, 11, 24, 14, 0),
-        datetime(2024, 11, 24, 16, 0),
-        "Event 1",
-    )
-    event2 = Event(
-        EVENT_TYPE_TRAINING,
-        datetime(2024, 11, 24, 15, 30),
-        datetime(2024, 11, 24, 17, 0),
-        "Event 2",
-    )
-    
-    window1 = HeatingWindow(
-        datetime(2024, 11, 24, 14, 0),
-        datetime(2024, 11, 24, 16, 0),
-        [event1],
-    )
-    window2 = HeatingWindow(
-        datetime(2024, 11, 24, 15, 0),
-        datetime(2024, 11, 24, 17, 0),
-        [event2],
-    )
-    
+def test_event_window_merge():
+    event1 = Event(EVENT_TYPE_TRAINING, datetime(2024, 11, 24, 14, 0), datetime(2024, 11, 24, 16, 0), "Event 1")
+    event2 = Event(EVENT_TYPE_TRAINING, datetime(2024, 11, 24, 15, 30), datetime(2024, 11, 24, 17, 0), "Event 2")
+
+    window1 = EventWindow(datetime(2024, 11, 24, 12, 0), datetime(2024, 11, 24, 14, 0), datetime(2024, 11, 24, 16, 0), [event1])
+    window2 = EventWindow(datetime(2024, 11, 24, 13, 30), datetime(2024, 11, 24, 15, 30), datetime(2024, 11, 24, 17, 0), [event2])
+
     merged = window1.merge(window2)
-    
-    assert merged.start_time == datetime(2024, 11, 24, 14, 0)
-    assert merged.end_time == datetime(2024, 11, 24, 17, 0)
+
+    assert merged.window_start == datetime(2024, 11, 24, 12, 0)
+    assert merged.event_start == datetime(2024, 11, 24, 14, 0)  # earliest event start
+    assert merged.window_end == datetime(2024, 11, 24, 17, 0)
     assert len(merged.events) == 2
 
 
-def test_heating_window_contains():
-    """Test if window contains a datetime."""
-    window = HeatingWindow(
+def test_event_window_in_window():
+    window = EventWindow(
+        datetime(2024, 11, 24, 12, 0),
         datetime(2024, 11, 24, 14, 0),
         datetime(2024, 11, 24, 16, 0),
     )
-    
-    assert window.contains(datetime(2024, 11, 24, 15, 0)) is True
-    assert window.contains(datetime(2024, 11, 24, 14, 0)) is True
-    assert window.contains(datetime(2024, 11, 24, 16, 0)) is True
-    assert window.contains(datetime(2024, 11, 24, 13, 0)) is False
-    assert window.contains(datetime(2024, 11, 24, 17, 0)) is False
+
+    assert window.in_window(datetime(2024, 11, 24, 13, 0)) is True
+    assert window.in_window(datetime(2024, 11, 24, 15, 0)) is True
+    assert window.in_window(datetime(2024, 11, 24, 12, 0)) is True
+    assert window.in_window(datetime(2024, 11, 24, 16, 0)) is True
+    assert window.in_window(datetime(2024, 11, 24, 11, 59)) is False
+    assert window.in_window(datetime(2024, 11, 24, 17, 0)) is False
+
+
+def test_event_window_in_event_period():
+    window = EventWindow(
+        datetime(2024, 11, 24, 12, 0),
+        datetime(2024, 11, 24, 14, 0),
+        datetime(2024, 11, 24, 16, 0),
+    )
+
+    # During pre-event lead time: not in event period
+    assert window.in_event_period(datetime(2024, 11, 24, 13, 0)) is False
+    # During actual event: in event period
+    assert window.in_event_period(datetime(2024, 11, 24, 15, 0)) is True
+    assert window.in_event_period(datetime(2024, 11, 24, 14, 0)) is True
+    assert window.in_event_period(datetime(2024, 11, 24, 16, 0)) is True
 
 
 def test_scheduler_creation():
-    """Test HeatingScheduler creation."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    assert scheduler.pre_heat_hours == 2
-    assert scheduler.cool_down_minutes == 30
+    scheduler = EventScheduler(pre_event_minutes=120)
+    assert scheduler.pre_event_minutes == 120
 
 
-def test_scheduler_calculate_heating_windows(sample_events):
-    """Test heating window calculation."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
+def test_scheduler_calculate_event_windows(sample_events):
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
     assert len(windows) > 0
-    assert all(isinstance(w, HeatingWindow) for w in windows)
-    
-    # Check that pre-heat is applied
+    assert all(isinstance(w, EventWindow) for w in windows)
+
     first_window = windows[0]
     first_event = sample_events[0]
-    
-    # Window should start 2 hours before event
-    expected_start = first_event.start_time - timedelta(hours=2)
-    assert abs((first_window.start_time - expected_start).total_seconds()) < 60
+    expected_window_start = first_event.start_time - timedelta(minutes=120)
+    assert abs((first_window.window_start - expected_window_start).total_seconds()) < 60
 
 
 def test_scheduler_merge_overlapping_windows():
-    """Test that overlapping windows are merged."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=15)
-    
+    scheduler = EventScheduler(pre_event_minutes=120)
     now = datetime.now()
-    # Create events that will result in overlapping heating windows
     events = [
-        Event(
-            EVENT_TYPE_TRAINING,
-            start_time=now + timedelta(hours=3),
-            end_time=now + timedelta(hours=5),
-            title="Event 1",
-        ),
-        Event(
-            EVENT_TYPE_TRAINING,
-            start_time=now + timedelta(hours=4),  # Overlaps with first
-            end_time=now + timedelta(hours=6),
-            title="Event 2",
-        ),
+        Event(EVENT_TYPE_TRAINING, start_time=now + timedelta(hours=3), end_time=now + timedelta(hours=5), title="Event 1"),
+        Event(EVENT_TYPE_TRAINING, start_time=now + timedelta(hours=4), end_time=now + timedelta(hours=6), title="Event 2"),
     ]
-    
-    windows = scheduler.calculate_heating_windows(events)
-    
-    # Should be merged into one window
+
+    windows = scheduler.calculate_event_windows(events)
+
     assert len(windows) == 1
     assert len(windows[0].events) == 2
 
 
-def test_scheduler_should_heat_now(sample_events):
-    """Test should_heat_now logic."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
-    # Test with a time outside any window
+def test_scheduler_is_in_window(sample_events):
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
     far_past = datetime.now() - timedelta(days=1)
-    assert scheduler.should_heat_now(windows, far_past) is False
-    
-    # Test with a time inside the first window
+    assert scheduler.is_in_window(windows, far_past) is False
+
     if windows:
-        inside_first = windows[0].start_time + timedelta(minutes=30)
-        assert scheduler.should_heat_now(windows, inside_first) is True
+        inside_first = windows[0].window_start + timedelta(minutes=30)
+        assert scheduler.is_in_window(windows, inside_first) is True
+
+
+def test_scheduler_is_event_active(sample_events):
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
+    if windows:
+        # During pre-event lead time: not event active
+        pre_event = windows[0].window_start + timedelta(minutes=30)
+        assert scheduler.is_event_active(windows, pre_event) is False
+
+        # During actual event: event active
+        during_event = windows[0].event_start + timedelta(minutes=30)
+        assert scheduler.is_event_active(windows, during_event) is True
 
 
 def test_scheduler_get_current_window(sample_events):
-    """Test getting current heating window."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
-    # Test with time outside any window
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
     far_past = datetime.now() - timedelta(days=1)
     assert scheduler.get_current_window(windows, far_past) is None
-    
-    # Test with time inside first window
+
     if windows:
-        inside_first = windows[0].start_time + timedelta(minutes=30)
+        inside_first = windows[0].window_start + timedelta(minutes=30)
         current = scheduler.get_current_window(windows, inside_first)
         assert current is not None
         assert current == windows[0]
 
 
 def test_scheduler_get_next_window(sample_events):
-    """Test getting next heating window."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
-    # Test with time before all windows
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
     if windows:
-        before_all = windows[0].start_time - timedelta(hours=1)
+        before_all = windows[0].window_start - timedelta(hours=1)
         next_window = scheduler.get_next_window(windows, before_all)
         assert next_window is not None
         assert next_window == windows[0]
 
 
 def test_scheduler_get_next_state_change(sample_events):
-    """Test getting next state change time."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
+
     if windows:
-        # Test when not heating - next change should be window start
-        before_all = windows[0].start_time - timedelta(hours=1)
-        change_time, will_heat = scheduler.get_next_state_change(windows, before_all)
-        
+        before_all = windows[0].window_start - timedelta(hours=1)
+        change_time, will_be_active = scheduler.get_next_state_change(windows, before_all)
         assert change_time is not None
-        assert will_heat is True
-        assert change_time == windows[0].start_time
-        
-        # Test when heating - next change should be window end
-        inside_first = windows[0].start_time + timedelta(minutes=30)
-        change_time, will_heat = scheduler.get_next_state_change(windows, inside_first)
-        
+        assert will_be_active is True
+        assert change_time == windows[0].window_start
+
+        inside_first = windows[0].window_start + timedelta(minutes=30)
+        change_time, will_be_active = scheduler.get_next_state_change(windows, inside_first)
         assert change_time is not None
-        assert will_heat is False
-        assert change_time == windows[0].end_time
+        assert will_be_active is False
+        assert change_time == windows[0].window_end
 
 
 def test_scheduler_get_schedule_summary(sample_events):
-    """Test schedule summary generation."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    windows = scheduler.calculate_heating_windows(sample_events)
-    
+    scheduler = EventScheduler(pre_event_minutes=120)
+    windows = scheduler.calculate_event_windows(sample_events)
     summary = scheduler.get_schedule_summary(windows)
-    
-    assert "is_heating" in summary
+
+    assert "is_window_active" in summary
+    assert "is_event_active" in summary
     assert "current_window" in summary
     assert "next_window" in summary
     assert "total_windows" in summary
@@ -258,19 +232,13 @@ def test_scheduler_get_schedule_summary(sample_events):
 
 
 def test_scheduler_update_settings():
-    """Test updating scheduler settings."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
-    scheduler.update_settings(pre_heat_hours=3, cool_down_minutes=45)
-    
-    assert scheduler.pre_heat_hours == 3
-    assert scheduler.cool_down_minutes == 45
+    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler.update_settings(pre_event_minutes=90)
+    assert scheduler.pre_event_minutes == 90
 
 
 def test_scheduler_skip_past_events():
-    """Test that past events are skipped."""
-    scheduler = HeatingScheduler(pre_heat_hours=2, cool_down_minutes=30)
-    
+    scheduler = EventScheduler(pre_event_minutes=120)
     now = datetime.now()
     past_event = Event(
         EVENT_TYPE_TRAINING,
@@ -278,34 +246,26 @@ def test_scheduler_skip_past_events():
         end_time=now - timedelta(hours=3),
         title="Past Event",
     )
-    
-    windows = scheduler.calculate_heating_windows([past_event])
-    
-    # Should have no windows (past event ignored)
+    windows = scheduler.calculate_event_windows([past_event])
     assert len(windows) == 0
 
 
-def test_heating_window_to_dict():
-    """Test HeatingWindow to_dict method."""
-    event = Event(
-        EVENT_TYPE_TRAINING,
+def test_event_window_to_dict():
+    event = Event(EVENT_TYPE_TRAINING, datetime(2024, 11, 24, 14, 0), datetime(2024, 11, 24, 16, 0), "Test Event")
+    window = EventWindow(
+        datetime(2024, 11, 24, 12, 0),
         datetime(2024, 11, 24, 14, 0),
         datetime(2024, 11, 24, 16, 0),
-        "Test Event",
-    )
-    
-    window = HeatingWindow(
-        datetime(2024, 11, 24, 12, 0),
-        datetime(2024, 11, 24, 15, 30),
         [event],
     )
-    
-    window_dict = window.to_dict()
-    
-    assert "start_time" in window_dict
-    assert "end_time" in window_dict
-    assert "duration_minutes" in window_dict
-    assert "event_count" in window_dict
-    assert window_dict["event_count"] == 1
-    assert "events" in window_dict
+    d = window.to_dict()
 
+    assert "window_start" in d
+    assert "event_start" in d
+    assert "window_end" in d
+    assert "duration_minutes" in d
+    assert "pre_event_minutes" in d
+    assert d["pre_event_minutes"] == 120
+    assert "event_count" in d
+    assert d["event_count"] == 1
+    assert "events" in d

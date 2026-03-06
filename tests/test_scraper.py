@@ -93,18 +93,19 @@ async def test_event_to_dict():
 @pytest.mark.asyncio
 async def test_scraper_fetch_html():
     """Test HTML fetching."""
-    mock_session = AsyncMock()
     mock_response = AsyncMock()
     mock_response.text = AsyncMock(return_value="<html></html>")
     mock_response.raise_for_status = MagicMock()
-    mock_session.get = AsyncMock(return_value=mock_response)
-    mock_session.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_session.__aexit__ = AsyncMock(return_value=None)
-    
+
+    # session.get() returns a context manager (not a coroutine), so use MagicMock
+    mock_session = MagicMock()
+    mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_session.get.return_value.__aexit__ = AsyncMock(return_value=False)
+
     scraper = ScheduleScraper("http://example.com/schedule", mock_session)
-    
+
     html = await scraper._fetch_html()
-    
+
     assert html == "<html></html>"
     mock_session.get.assert_called_once()
 
@@ -187,9 +188,9 @@ async def test_scraper_filter_events_by_date():
     
     mock_response.text = AsyncMock(return_value=html)
     mock_response.raise_for_status = MagicMock()
-    mock_session.get = AsyncMock(return_value=mock_response)
-    mock_session.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session = MagicMock()
+    mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_session.get.return_value.__aexit__ = AsyncMock(return_value=False)
     
     scraper = ScheduleScraper("http://example.com/schedule", mock_session)
     

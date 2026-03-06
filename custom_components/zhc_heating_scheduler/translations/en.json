@@ -2,23 +2,19 @@
   "config": {
     "step": {
       "user": {
-        "title": "ZHC Heating Scheduler",
-        "description": "Set up the heating scheduler for your field hockey club.",
+        "title": "ZHC Scheduler",
+        "description": "Set up the event scheduler. It will fire Home Assistant events when your club's schedule starts and ends, so you can trigger automations for heating, lighting, screens, or anything else.",
         "data": {
           "schedule_url": "Schedule URL",
-          "climate_entity": "Climate Entity",
-          "pre_heat_hours": "Pre-heat time (hours)",
-          "cool_down_minutes": "Cool-down time (minutes)",
-          "target_temperature": "Target temperature (°C)",
+          "pre_event_minutes": "Pre-event lead time (minutes)",
           "scan_interval": "Schedule refresh interval (seconds)",
-          "dry_run": "Dry run mode (log only, don't control heating)"
+          "dry_run": "Dry run mode (log only, don't fire events)"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the schedule URL",
       "invalid_url": "Invalid schedule URL",
-      "invalid_climate_entity": "Climate entity not found",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
@@ -28,14 +24,12 @@
   "options": {
     "step": {
       "init": {
-        "title": "ZHC Heating Scheduler Options",
+        "title": "ZHC Scheduler Options",
         "data": {
-          "pre_heat_hours": "Pre-heat time (hours)",
-          "cool_down_minutes": "Cool-down time (minutes)",
-          "target_temperature": "Target temperature (°C)",
+          "pre_event_minutes": "Pre-event lead time (minutes)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "enabled": "Enable scheduler",
-          "dry_run": "Dry run mode (log only, don't control heating)"
+          "dry_run": "Dry run mode (log only, don't fire events)"
         }
       }
     }
@@ -47,23 +41,23 @@
     },
     "enable": {
       "name": "Enable Scheduler",
-      "description": "Enable the heating scheduler."
+      "description": "Enable the scheduler so it fires events."
     },
     "disable": {
       "name": "Disable Scheduler",
-      "description": "Disable the heating scheduler."
+      "description": "Disable the scheduler. No events will be fired while disabled."
     },
     "set_override": {
       "name": "Set Override",
-      "description": "Manually override the heating schedule.",
+      "description": "Manually activate the window for a given time period, firing the normal window/event HA events.",
       "fields": {
         "start_time": {
           "name": "Start Time",
-          "description": "When to start heating (ISO format)"
+          "description": "When to start the override window (ISO format)"
         },
         "end_time": {
           "name": "End Time",
-          "description": "When to stop heating (ISO format)"
+          "description": "When to end the override window (ISO format)"
         }
       }
     },
@@ -73,4 +67,3 @@
     }
   }
 }
-
