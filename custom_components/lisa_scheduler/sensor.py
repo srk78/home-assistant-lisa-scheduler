@@ -55,12 +55,15 @@ class LISASchedulerSensorBase(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
+        info = DeviceInfo(
             identifiers={(DOMAIN, self._config_entry.entry_id)},
             name="LISA Scheduler",
             manufacturer="LISA",
             model="Event Scheduler",
         )
+        if self.coordinator.logo_url:
+            info["configuration_url"] = self.coordinator.logo_url
+        return info
 
 
 class LISANextWindowStartSensor(LISASchedulerSensorBase):

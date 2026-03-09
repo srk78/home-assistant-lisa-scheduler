@@ -43,6 +43,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         scan_interval: int,
         enabled: bool = True,
         dry_run: bool = False,
+        logo_url: str = "",
         scraper_sources: list[dict] | None = None,
         date_format: str = DEFAULT_DATE_FORMAT,
         time_format: str = DEFAULT_TIME_FORMAT,
@@ -57,6 +58,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         )
 
         self.schedule_url = schedule_url
+        self.logo_url = logo_url
         self.scan_interval = scan_interval
         self.enabled = enabled
         self.dry_run = dry_run

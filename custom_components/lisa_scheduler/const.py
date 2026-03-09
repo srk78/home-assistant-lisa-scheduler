@@ -4,6 +4,7 @@ DOMAIN = "lisa_scheduler"
 
 # Configuration keys
 CONF_SCHEDULE_URL = "schedule_url"
+CONF_LOGO_URL = "logo_url"
 CONF_PRE_EVENT_MINUTES = "pre_event_minutes"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_ENABLED = "enabled"

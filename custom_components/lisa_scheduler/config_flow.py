@@ -15,6 +15,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     CONF_DRY_RUN,
     CONF_ENABLED,
+    CONF_LOGO_URL,
     CONF_PRE_EVENT_MINUTES,
     CONF_SCAN_INTERVAL,
     CONF_SCHEDULE_URL,
@@ -67,6 +68,7 @@ class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_SCHEDULE_URL): str,
+                vol.Optional(CONF_LOGO_URL, default=""): str,
                 vol.Optional(
                     CONF_PRE_EVENT_MINUTES,
                     default=DEFAULT_PRE_EVENT_MINUTES,
@@ -111,6 +113,10 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        current_logo_url = self.config_entry.options.get(
+            CONF_LOGO_URL,
+            self.config_entry.data.get(CONF_LOGO_URL, ""),
+        )
         current_pre_event = self.config_entry.options.get(
             CONF_PRE_EVENT_MINUTES,
             self.config_entry.data.get(CONF_PRE_EVENT_MINUTES, DEFAULT_PRE_EVENT_MINUTES),
@@ -130,6 +136,7 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
 
         options_schema = vol.Schema(
             {
+                vol.Optional(CONF_LOGO_URL, default=current_logo_url): str,
                 vol.Optional(
                     CONF_PRE_EVENT_MINUTES,
                     default=current_pre_event,

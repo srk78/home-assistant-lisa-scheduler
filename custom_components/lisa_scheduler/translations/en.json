@@ -6,6 +6,7 @@
         "description": "Set up the event scheduler. It will fire Home Assistant events when your club's schedule starts and ends, so you can trigger automations for heating, lighting, screens, or anything else.",
         "data": {
           "schedule_url": "Schedule URL",
+          "logo_url": "Club logo URL (optional)",
           "pre_event_minutes": "Pre-event lead time (minutes)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "dry_run": "Dry run mode (log only, don't fire events)"
@@ -26,6 +27,7 @@
       "init": {
         "title": "LISA Scheduler Options",
         "data": {
+          "logo_url": "Club logo URL (optional)",
           "pre_event_minutes": "Pre-event lead time (minutes)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "enabled": "Enable scheduler",
