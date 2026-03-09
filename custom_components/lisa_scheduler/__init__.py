@@ -19,7 +19,7 @@ from .const import (
     CONF_DRY_RUN,
     CONF_ENABLED,
     CONF_LOGO_URL,
-    CONF_PRE_EVENT_MINUTES,
+    CONF_PRE_EVENT_TRIGGERS,
     CONF_SCAN_INTERVAL,
     CONF_SCHEDULE_URL,
     CONF_SCRAPER_SOURCES,
@@ -28,7 +28,7 @@ from .const import (
     DEFAULT_DATE_FORMAT,
     DEFAULT_DRY_RUN,
     DEFAULT_ENABLED,
-    DEFAULT_PRE_EVENT_MINUTES,
+    DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIME_FORMAT,
     DEFAULT_TIMEZONE,
@@ -51,8 +51,8 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Required(CONF_SCHEDULE_URL): cv.url,
                 vol.Optional(
-                    CONF_PRE_EVENT_MINUTES, default=DEFAULT_PRE_EVENT_MINUTES
-                ): vol.All(cv.positive_int, vol.Range(min=0, max=1440)),
+                    CONF_PRE_EVENT_TRIGGERS, default=DEFAULT_PRE_EVENT_TRIGGERS
+                ): vol.All(cv.ensure_list, [cv.positive_int]),
                 vol.Optional(
                     CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
                 ): vol.All(cv.positive_int, vol.Range(min=600, max=86400)),
@@ -89,15 +89,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = LISASchedulerCoordinator(
         hass,
         entry.data[CONF_SCHEDULE_URL],
-        entry.options.get(CONF_PRE_EVENT_MINUTES, entry.data.get(CONF_PRE_EVENT_MINUTES, DEFAULT_PRE_EVENT_MINUTES)),
-        entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
-        entry.options.get(CONF_ENABLED, entry.data.get(CONF_ENABLED, DEFAULT_ENABLED)),
-        entry.options.get(CONF_DRY_RUN, entry.data.get(CONF_DRY_RUN, DEFAULT_DRY_RUN)),
-        entry.options.get(CONF_LOGO_URL, entry.data.get(CONF_LOGO_URL, "")),
-        entry.options.get(CONF_SCRAPER_SOURCES, entry.data.get(CONF_SCRAPER_SOURCES)),
-        entry.options.get(CONF_DATE_FORMAT, entry.data.get(CONF_DATE_FORMAT, DEFAULT_DATE_FORMAT)),
-        entry.options.get(CONF_TIME_FORMAT, entry.data.get(CONF_TIME_FORMAT, DEFAULT_TIME_FORMAT)),
-        entry.options.get(CONF_TIMEZONE, entry.data.get(CONF_TIMEZONE, DEFAULT_TIMEZONE)),
+        pre_event_triggers=entry.options.get(CONF_PRE_EVENT_TRIGGERS, entry.data.get(CONF_PRE_EVENT_TRIGGERS, DEFAULT_PRE_EVENT_TRIGGERS)),
+        scan_interval=entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+        enabled=entry.options.get(CONF_ENABLED, entry.data.get(CONF_ENABLED, DEFAULT_ENABLED)),
+        dry_run=entry.options.get(CONF_DRY_RUN, entry.data.get(CONF_DRY_RUN, DEFAULT_DRY_RUN)),
+        logo_url=entry.options.get(CONF_LOGO_URL, entry.data.get(CONF_LOGO_URL, "")),
+        scraper_sources=entry.options.get(CONF_SCRAPER_SOURCES, entry.data.get(CONF_SCRAPER_SOURCES)),
+        date_format=entry.options.get(CONF_DATE_FORMAT, entry.data.get(CONF_DATE_FORMAT, DEFAULT_DATE_FORMAT)),
+        time_format=entry.options.get(CONF_TIME_FORMAT, entry.data.get(CONF_TIME_FORMAT, DEFAULT_TIME_FORMAT)),
+        timezone=entry.options.get(CONF_TIMEZONE, entry.data.get(CONF_TIMEZONE, DEFAULT_TIMEZONE)),
         session=async_get_clientsession(hass),
     )
 

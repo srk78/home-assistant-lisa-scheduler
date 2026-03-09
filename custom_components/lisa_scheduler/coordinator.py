@@ -23,6 +23,7 @@ from .const import (
     EVENT_WINDOW_ENDED,
     EVENT_EVENT_STARTED,
     EVENT_EVENT_ENDED,
+    EVENT_PRE_EVENT_TRIGGER,
     UPDATE_INTERVAL_SCHEDULE,
 )
 from .scheduler import EventScheduler, EventWindow
@@ -39,8 +40,8 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         schedule_url: str,
-        pre_event_minutes: int,
-        scan_interval: int,
+        pre_event_triggers: list[int] | None = None,
+        scan_interval: int = 21600,
         enabled: bool = True,
         dry_run: bool = False,
         logo_url: str = "",
@@ -63,7 +64,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.enabled = enabled
         self.dry_run = dry_run
 
-        self.scheduler = EventScheduler(pre_event_minutes)
+        self.scheduler = EventScheduler(pre_event_triggers)
 
         if scraper_sources:
             _LOGGER.info("Using configurable scraper with %d sources", len(scraper_sources))
@@ -86,6 +87,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.is_window_active: bool = False
         self.is_event_active: bool = False
         self.manual_override: tuple[datetime, datetime] | None = None
+        self._fired_triggers: set[tuple[str, int]] = set()
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -117,6 +119,8 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
 
             self.is_window_active = new_window_active
             self.is_event_active = new_event_active
+
+            self._fire_pre_event_triggers(now)
 
             summary = self.scheduler.get_schedule_summary(self.event_windows, now)
 
@@ -159,6 +163,13 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                 len(self.events),
                 len(self.event_windows),
             )
+            # Clean up fired trigger keys whose event_start is older than 24 hours
+            cutoff = datetime.now() - timedelta(hours=24)
+            self._fired_triggers = {
+                (event_start_iso, minutes_before)
+                for event_start_iso, minutes_before in self._fired_triggers
+                if datetime.fromisoformat(event_start_iso) > cutoff
+            }
         except Exception as e:
             self.last_error = f"Schedule refresh failed: {e}"
             _LOGGER.error(self.last_error, exc_info=True)
@@ -203,6 +214,29 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Event ended")
             self.hass.bus.async_fire(EVENT_EVENT_ENDED, {})
 
+    def _fire_pre_event_triggers(self, now: datetime) -> None:
+        """Fire pre-event trigger HA events for each configured trigger time."""
+        if not self.enabled:
+            return
+        if self.dry_run:
+            _LOGGER.info("DRY RUN: skipping pre-event trigger checks")
+            return
+        for window in self.event_windows:
+            for minutes_before in self.scheduler.pre_event_triggers:
+                trigger_time = window.event_start - timedelta(minutes=minutes_before)
+                fire_key = (window.event_start.isoformat(), minutes_before)
+                if trigger_time <= now and fire_key not in self._fired_triggers:
+                    self._fired_triggers.add(fire_key)
+                    # Only fire if trigger time is within 2 minutes (prevents stale fires after restart)
+                    if trigger_time > now - timedelta(seconds=120):
+                        payload = {**window.to_dict(), "minutes_before": minutes_before}
+                        _LOGGER.info(
+                            "Pre-event trigger fired: %d min before event at %s",
+                            minutes_before,
+                            window.event_start.isoformat(),
+                        )
+                        self.hass.bus.async_fire(EVENT_PRE_EVENT_TRIGGER, payload)
+
     def set_enabled(self, enabled: bool) -> None:
         self.enabled = enabled
         _LOGGER.info("Scheduler %s", "enabled" if enabled else "disabled")
@@ -220,11 +254,11 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
 
     def update_settings(
         self,
-        pre_event_minutes: int | None = None,
+        pre_event_triggers: list[int] | None = None,
         scan_interval: int | None = None,
     ) -> None:
-        if pre_event_minutes is not None:
-            self.scheduler.update_settings(pre_event_minutes)
+        if pre_event_triggers is not None:
+            self.scheduler.update_settings(pre_event_triggers)
             self.event_windows = self.scheduler.calculate_event_windows(self.events)
 
         if scan_interval is not None:

@@ -12,6 +12,7 @@ from .const import (
     DOMAIN,
     EVENT_EVENT_ENDED,
     EVENT_EVENT_STARTED,
+    EVENT_PRE_EVENT_TRIGGER,
     EVENT_WINDOW_ENDED,
     EVENT_WINDOW_STARTED,
 )
@@ -22,6 +23,7 @@ TRIGGER_TYPES: dict[str, tuple[str, str]] = {
     "pre_event_window_closed": (EVENT_WINDOW_ENDED, "Pre-event window closed"),
     "event_started": (EVENT_EVENT_STARTED, "Event started"),
     "event_ended": (EVENT_EVENT_ENDED, "Event ended"),
+    "pre_event_trigger": (EVENT_PRE_EVENT_TRIGGER, "Pre-event trigger fired"),
 }
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(

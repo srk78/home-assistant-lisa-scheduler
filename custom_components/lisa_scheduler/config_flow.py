@@ -16,18 +16,38 @@ from .const import (
     CONF_DRY_RUN,
     CONF_ENABLED,
     CONF_LOGO_URL,
-    CONF_PRE_EVENT_MINUTES,
+    CONF_PRE_EVENT_TRIGGERS,
     CONF_SCAN_INTERVAL,
     CONF_SCHEDULE_URL,
     DEFAULT_DRY_RUN,
     DEFAULT_ENABLED,
-    DEFAULT_PRE_EVENT_MINUTES,
+    DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from .scraper import ScheduleScraper
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _parse_triggers(value: str) -> list[int]:
+    """Parse a comma-separated string of trigger minutes into a sorted list."""
+    try:
+        parts = [part.strip() for part in value.split(",") if part.strip()]
+        if not parts:
+            raise vol.Invalid("At least one trigger time is required")
+        values = [int(p) for p in parts]
+        for v in values:
+            if not (0 <= v <= 1440):
+                raise vol.Invalid(
+                    f"Trigger time {v} is out of range (must be 0–1440)"
+                )
+        # Deduplicate and sort descending
+        return sorted(set(values), reverse=True)
+    except vol.Invalid:
+        raise
+    except (ValueError, TypeError) as err:
+        raise vol.Invalid(f"Invalid trigger times: {err}") from err
 
 
 async def validate_schedule_url(hass: HomeAssistant, url: str) -> bool:
@@ -65,14 +85,15 @@ class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(title="LISA Scheduler", data=user_input)
 
+        default_triggers_str = ", ".join(str(m) for m in DEFAULT_PRE_EVENT_TRIGGERS)
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_SCHEDULE_URL): str,
                 vol.Optional(CONF_LOGO_URL, default=""): str,
                 vol.Optional(
-                    CONF_PRE_EVENT_MINUTES,
-                    default=DEFAULT_PRE_EVENT_MINUTES,
-                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
+                    CONF_PRE_EVENT_TRIGGERS,
+                    default=default_triggers_str,
+                ): vol.All(str, _parse_triggers),
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=DEFAULT_SCAN_INTERVAL,
@@ -117,10 +138,11 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
             CONF_LOGO_URL,
             self.config_entry.data.get(CONF_LOGO_URL, ""),
         )
-        current_pre_event = self.config_entry.options.get(
-            CONF_PRE_EVENT_MINUTES,
-            self.config_entry.data.get(CONF_PRE_EVENT_MINUTES, DEFAULT_PRE_EVENT_MINUTES),
+        current_triggers = self.config_entry.options.get(
+            CONF_PRE_EVENT_TRIGGERS,
+            self.config_entry.data.get(CONF_PRE_EVENT_TRIGGERS, DEFAULT_PRE_EVENT_TRIGGERS),
         )
+        current_triggers_str = ", ".join(str(m) for m in current_triggers)
         current_scan_interval = self.config_entry.options.get(
             CONF_SCAN_INTERVAL,
             self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -138,9 +160,9 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
             {
                 vol.Optional(CONF_LOGO_URL, default=current_logo_url): str,
                 vol.Optional(
-                    CONF_PRE_EVENT_MINUTES,
-                    default=current_pre_event,
-                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
+                    CONF_PRE_EVENT_TRIGGERS,
+                    default=current_triggers_str,
+                ): vol.All(str, _parse_triggers),
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=current_scan_interval,

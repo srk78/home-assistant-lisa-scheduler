@@ -117,12 +117,13 @@ def test_event_window_in_event_period():
 
 
 def test_scheduler_creation():
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
+    assert scheduler.pre_event_triggers == [120]
     assert scheduler.pre_event_minutes == 120
 
 
 def test_scheduler_calculate_event_windows(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     assert len(windows) > 0
@@ -135,7 +136,7 @@ def test_scheduler_calculate_event_windows(sample_events):
 
 
 def test_scheduler_merge_overlapping_windows():
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     now = datetime.now()
     events = [
         Event(EVENT_TYPE_TRAINING, start_time=now + timedelta(hours=3), end_time=now + timedelta(hours=5), title="Event 1"),
@@ -149,7 +150,7 @@ def test_scheduler_merge_overlapping_windows():
 
 
 def test_scheduler_is_in_window(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     far_past = datetime.now() - timedelta(days=1)
@@ -161,7 +162,7 @@ def test_scheduler_is_in_window(sample_events):
 
 
 def test_scheduler_is_event_active(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     if windows:
@@ -175,7 +176,7 @@ def test_scheduler_is_event_active(sample_events):
 
 
 def test_scheduler_get_current_window(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     far_past = datetime.now() - timedelta(days=1)
@@ -189,7 +190,7 @@ def test_scheduler_get_current_window(sample_events):
 
 
 def test_scheduler_get_next_window(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     if windows:
@@ -200,7 +201,7 @@ def test_scheduler_get_next_window(sample_events):
 
 
 def test_scheduler_get_next_state_change(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
 
     if windows:
@@ -218,7 +219,7 @@ def test_scheduler_get_next_state_change(sample_events):
 
 
 def test_scheduler_get_schedule_summary(sample_events):
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     windows = scheduler.calculate_event_windows(sample_events)
     summary = scheduler.get_schedule_summary(windows)
 
@@ -232,13 +233,14 @@ def test_scheduler_get_schedule_summary(sample_events):
 
 
 def test_scheduler_update_settings():
-    scheduler = EventScheduler(pre_event_minutes=120)
-    scheduler.update_settings(pre_event_minutes=90)
+    scheduler = EventScheduler(pre_event_triggers=[120])
+    scheduler.update_settings(pre_event_triggers=[90])
+    assert scheduler.pre_event_triggers == [90]
     assert scheduler.pre_event_minutes == 90
 
 
 def test_scheduler_skip_past_events():
-    scheduler = EventScheduler(pre_event_minutes=120)
+    scheduler = EventScheduler(pre_event_triggers=[120])
     now = datetime.now()
     past_event = Event(
         EVENT_TYPE_TRAINING,

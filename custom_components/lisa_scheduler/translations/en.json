@@ -7,7 +7,7 @@
         "data": {
           "schedule_url": "Schedule URL",
           "logo_url": "Club logo URL (optional)",
-          "pre_event_minutes": "Pre-event lead time (minutes)",
+          "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "dry_run": "Dry run mode (log only, don't fire events)"
         }
@@ -28,7 +28,7 @@
         "title": "LISA Scheduler Options",
         "data": {
           "logo_url": "Club logo URL (optional)",
-          "pre_event_minutes": "Pre-event lead time (minutes)",
+          "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "enabled": "Enable scheduler",
           "dry_run": "Dry run mode (log only, don't fire events)"

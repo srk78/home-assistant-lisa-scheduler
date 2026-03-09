@@ -5,13 +5,13 @@ DOMAIN = "lisa_scheduler"
 # Configuration keys
 CONF_SCHEDULE_URL = "schedule_url"
 CONF_LOGO_URL = "logo_url"
-CONF_PRE_EVENT_MINUTES = "pre_event_minutes"
+CONF_PRE_EVENT_TRIGGERS = "pre_event_triggers"
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_ENABLED = "enabled"
 CONF_DRY_RUN = "dry_run"
 
 # Default values
-DEFAULT_PRE_EVENT_MINUTES = 120  # 2 hours
+DEFAULT_PRE_EVENT_TRIGGERS = [120]  # 2 hours
 DEFAULT_SCAN_INTERVAL = 21600  # 6 hours in seconds
 DEFAULT_ENABLED = True
 DEFAULT_DRY_RUN = False
@@ -21,6 +21,7 @@ EVENT_WINDOW_STARTED = "lisa_scheduler_window_started"
 EVENT_WINDOW_ENDED = "lisa_scheduler_window_ended"
 EVENT_EVENT_STARTED = "lisa_scheduler_event_started"
 EVENT_EVENT_ENDED = "lisa_scheduler_event_ended"
+EVENT_PRE_EVENT_TRIGGER = "lisa_scheduler_pre_event_trigger"
 
 # Service names
 SERVICE_REFRESH_SCHEDULE = "refresh_schedule"

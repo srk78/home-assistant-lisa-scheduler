@@ -37,7 +37,7 @@ def sample_events():
 def _make_coordinator(mock_hass, **kwargs):
     defaults = dict(
         schedule_url="http://example.com/schedule",
-        pre_event_minutes=120,
+        pre_event_triggers=[120],
         scan_interval=21600,
         enabled=True,
         dry_run=False,
@@ -51,6 +51,7 @@ async def test_coordinator_initialization(mock_hass):
     coordinator = _make_coordinator(mock_hass)
 
     assert coordinator.schedule_url == "http://example.com/schedule"
+    assert coordinator.scheduler.pre_event_triggers == [120]
     assert coordinator.scheduler.pre_event_minutes == 120
     assert coordinator.enabled is True
     assert coordinator.dry_run is False
@@ -108,8 +109,9 @@ async def test_coordinator_calculate_window_state_with_override(mock_hass):
 async def test_coordinator_update_settings(mock_hass):
     coordinator = _make_coordinator(mock_hass)
 
-    coordinator.update_settings(pre_event_minutes=90, scan_interval=3600)
+    coordinator.update_settings(pre_event_triggers=[90], scan_interval=3600)
 
+    assert coordinator.scheduler.pre_event_triggers == [90]
     assert coordinator.scheduler.pre_event_minutes == 90
     assert coordinator.scan_interval == 3600
 

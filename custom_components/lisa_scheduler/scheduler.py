@@ -72,8 +72,13 @@ class EventWindow:
 class EventScheduler:
     """Calculate event windows from a scraped schedule."""
 
-    def __init__(self, pre_event_minutes: int = 120):
-        self.pre_event_minutes = pre_event_minutes
+    def __init__(self, pre_event_triggers: list[int] | None = None):
+        self.pre_event_triggers = sorted(pre_event_triggers or [120], reverse=True)
+
+    @property
+    def pre_event_minutes(self) -> int:
+        """Return the largest trigger time; this is when the window opens."""
+        return max(self.pre_event_triggers) if self.pre_event_triggers else 0
 
     def calculate_event_windows(
         self, events: list[Event], now: datetime | None = None
@@ -209,6 +214,9 @@ class EventScheduler:
             "total_windows": len(windows),
         }
 
-    def update_settings(self, pre_event_minutes: int) -> None:
-        self.pre_event_minutes = pre_event_minutes
-        _LOGGER.info("Scheduler settings updated: pre_event=%d min", pre_event_minutes)
+    def update_settings(self, pre_event_triggers: list[int]) -> None:
+        self.pre_event_triggers = sorted(pre_event_triggers, reverse=True)
+        _LOGGER.info(
+            "Scheduler settings updated: pre_event_triggers=%s",
+            self.pre_event_triggers,
+        )
