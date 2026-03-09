@@ -19,6 +19,7 @@
     "error": {
       "cannot_connect": "Failed to connect to the schedule URL",
       "invalid_url": "Invalid schedule URL",
+      "invalid_triggers": "Invalid trigger times — use comma-separated minutes, e.g. 120, 30",
       "unknown": "Unexpected error occurred"
     },
     "abort": {

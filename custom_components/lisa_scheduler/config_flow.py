@@ -86,9 +86,19 @@ class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            url_valid = await validate_schedule_url(self.hass, user_input[CONF_SCHEDULE_URL])
-            if not url_valid:
-                errors["base"] = "cannot_connect"
+            try:
+                user_input[CONF_PRE_EVENT_TRIGGERS] = _parse_triggers(user_input[CONF_PRE_EVENT_TRIGGERS])
+                user_input[CONF_PRE_FIRST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_FIRST_EVENT_TRIGGERS, ""))
+                user_input[CONF_PRE_LAST_EVENT_END_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, ""))
+                user_input[CONF_POST_LAST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_POST_LAST_EVENT_TRIGGERS, ""))
+            except vol.Invalid as err:
+                errors["base"] = "invalid_triggers"
+                _LOGGER.error("Invalid trigger times: %s", err)
+
+            if not errors:
+                url_valid = await validate_schedule_url(self.hass, user_input[CONF_SCHEDULE_URL])
+                if not url_valid:
+                    errors["base"] = "cannot_connect"
 
             if not errors:
                 await self.async_set_unique_id(user_input[CONF_SCHEDULE_URL])
@@ -100,13 +110,10 @@ class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_SCHEDULE_URL): str,
                 vol.Optional(CONF_LOGO_URL, default=""): str,
-                vol.Optional(
-                    CONF_PRE_EVENT_TRIGGERS,
-                    default=default_triggers_str,
-                ): vol.All(str, _parse_triggers),
-                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
-                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
-                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_PRE_EVENT_TRIGGERS, default=default_triggers_str): str,
+                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=""): str,
+                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=""): str,
+                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=""): str,
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=DEFAULT_SCAN_INTERVAL,
@@ -145,6 +152,13 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         if user_input is not None:
+            try:
+                user_input[CONF_PRE_EVENT_TRIGGERS] = _parse_triggers(user_input[CONF_PRE_EVENT_TRIGGERS])
+                user_input[CONF_PRE_FIRST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_FIRST_EVENT_TRIGGERS, ""))
+                user_input[CONF_PRE_LAST_EVENT_END_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, ""))
+                user_input[CONF_POST_LAST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_POST_LAST_EVENT_TRIGGERS, ""))
+            except vol.Invalid:
+                pass  # keep raw strings, coordinator will handle gracefully
             return self.async_create_entry(title="", data=user_input)
 
         current_logo_url = self.config_entry.options.get(
@@ -187,13 +201,10 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
         options_schema = vol.Schema(
             {
                 vol.Optional(CONF_LOGO_URL, default=current_logo_url): str,
-                vol.Optional(
-                    CONF_PRE_EVENT_TRIGGERS,
-                    default=current_triggers_str,
-                ): vol.All(str, _parse_triggers),
-                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=current_pre_first_str): vol.All(str, _parse_optional_triggers),
-                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=current_pre_last_end_str): vol.All(str, _parse_optional_triggers),
-                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=current_post_last_str): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_PRE_EVENT_TRIGGERS, default=current_triggers_str): str,
+                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=current_pre_first_str): str,
+                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=current_pre_last_end_str): str,
+                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=current_post_last_str): str,
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=current_scan_interval,
