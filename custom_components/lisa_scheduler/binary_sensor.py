@@ -46,6 +46,7 @@ class LISABinarySensorBase(CoordinatorEntity, BinarySensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_type}"
         self._attr_name = name
         self._attr_has_entity_name = True
+        self._attr_entity_picture = coordinator.logo_url or None
 
     @property
     def device_info(self) -> DeviceInfo:
