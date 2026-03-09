@@ -15,6 +15,11 @@ from .const import (
     EVENT_PRE_EVENT_TRIGGER,
     EVENT_WINDOW_ENDED,
     EVENT_WINDOW_STARTED,
+    EVENT_FIRST_EVENT_STARTED,
+    EVENT_LAST_EVENT_ENDED,
+    EVENT_PRE_FIRST_EVENT_TRIGGER,
+    EVENT_PRE_LAST_EVENT_END_TRIGGER,
+    EVENT_POST_LAST_EVENT_TRIGGER,
 )
 
 # Maps trigger type key → (event_type, friendly label)
@@ -24,6 +29,11 @@ TRIGGER_TYPES: dict[str, tuple[str, str]] = {
     "event_started": (EVENT_EVENT_STARTED, "Event started"),
     "event_ended": (EVENT_EVENT_ENDED, "Event ended"),
     "pre_event_trigger": (EVENT_PRE_EVENT_TRIGGER, "Pre-event trigger fired"),
+    "first_event_started": (EVENT_FIRST_EVENT_STARTED, "First event of the day started"),
+    "last_event_ended": (EVENT_LAST_EVENT_ENDED, "Last event of the day ended"),
+    "pre_first_event_trigger": (EVENT_PRE_FIRST_EVENT_TRIGGER, "Before first event of day"),
+    "pre_last_event_end_trigger": (EVENT_PRE_LAST_EVENT_END_TRIGGER, "Before last event of day ends"),
+    "post_last_event_trigger": (EVENT_POST_LAST_EVENT_TRIGGER, "After last event of day ended"),
 }
 
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend(

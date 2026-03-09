@@ -17,6 +17,9 @@ from .const import (
     CONF_ENABLED,
     CONF_LOGO_URL,
     CONF_PRE_EVENT_TRIGGERS,
+    CONF_PRE_FIRST_EVENT_TRIGGERS,
+    CONF_PRE_LAST_EVENT_END_TRIGGERS,
+    CONF_POST_LAST_EVENT_TRIGGERS,
     CONF_SCAN_INTERVAL,
     CONF_SCHEDULE_URL,
     DEFAULT_DRY_RUN,
@@ -48,6 +51,13 @@ def _parse_triggers(value: str) -> list[int]:
         raise
     except (ValueError, TypeError) as err:
         raise vol.Invalid(f"Invalid trigger times: {err}") from err
+
+
+def _parse_optional_triggers(value: str) -> list[int]:
+    """Parse comma-separated trigger minutes; empty string returns empty list."""
+    if not value or not value.strip():
+        return []
+    return _parse_triggers(value)
 
 
 async def validate_schedule_url(hass: HomeAssistant, url: str) -> bool:
@@ -94,6 +104,9 @@ class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PRE_EVENT_TRIGGERS,
                     default=default_triggers_str,
                 ): vol.All(str, _parse_triggers),
+                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=""): vol.All(str, _parse_optional_triggers),
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=DEFAULT_SCAN_INTERVAL,
@@ -143,6 +156,21 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
             self.config_entry.data.get(CONF_PRE_EVENT_TRIGGERS, DEFAULT_PRE_EVENT_TRIGGERS),
         )
         current_triggers_str = ", ".join(str(m) for m in current_triggers)
+        current_pre_first = self.config_entry.options.get(
+            CONF_PRE_FIRST_EVENT_TRIGGERS,
+            self.config_entry.data.get(CONF_PRE_FIRST_EVENT_TRIGGERS, []),
+        )
+        current_pre_first_str = ", ".join(str(m) for m in current_pre_first)
+        current_pre_last_end = self.config_entry.options.get(
+            CONF_PRE_LAST_EVENT_END_TRIGGERS,
+            self.config_entry.data.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, []),
+        )
+        current_pre_last_end_str = ", ".join(str(m) for m in current_pre_last_end)
+        current_post_last = self.config_entry.options.get(
+            CONF_POST_LAST_EVENT_TRIGGERS,
+            self.config_entry.data.get(CONF_POST_LAST_EVENT_TRIGGERS, []),
+        )
+        current_post_last_str = ", ".join(str(m) for m in current_post_last)
         current_scan_interval = self.config_entry.options.get(
             CONF_SCAN_INTERVAL,
             self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
@@ -163,6 +191,9 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
                     CONF_PRE_EVENT_TRIGGERS,
                     default=current_triggers_str,
                 ): vol.All(str, _parse_triggers),
+                vol.Optional(CONF_PRE_FIRST_EVENT_TRIGGERS, default=current_pre_first_str): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_PRE_LAST_EVENT_END_TRIGGERS, default=current_pre_last_end_str): vol.All(str, _parse_optional_triggers),
+                vol.Optional(CONF_POST_LAST_EVENT_TRIGGERS, default=current_post_last_str): vol.All(str, _parse_optional_triggers),
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=current_scan_interval,

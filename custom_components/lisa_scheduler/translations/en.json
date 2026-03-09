@@ -8,6 +8,9 @@
           "schedule_url": "Schedule URL",
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
+          "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",
+          "pre_last_event_end_triggers": "Minutes before last event ends (comma-separated, optional)",
+          "post_last_event_triggers": "Minutes after last event ends (comma-separated, optional)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "dry_run": "Dry run mode (log only, don't fire events)"
         }
@@ -29,6 +32,9 @@
         "data": {
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
+          "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",
+          "pre_last_event_end_triggers": "Minutes before last event ends (comma-separated, optional)",
+          "post_last_event_triggers": "Minutes after last event ends (comma-separated, optional)",
           "scan_interval": "Schedule refresh interval (seconds)",
           "enabled": "Enable scheduler",
           "dry_run": "Dry run mode (log only, don't fire events)"

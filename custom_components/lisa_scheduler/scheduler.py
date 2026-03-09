@@ -214,6 +214,18 @@ class EventScheduler:
             "total_windows": len(windows),
         }
 
+    def get_first_window_today(self, windows: list[EventWindow], now: datetime) -> EventWindow | None:
+        """Return the window with the earliest event_start today."""
+        today = now.date()
+        today_windows = [w for w in windows if w.event_start.date() == today]
+        return min(today_windows, key=lambda w: w.event_start) if today_windows else None
+
+    def get_last_window_today(self, windows: list[EventWindow], now: datetime) -> EventWindow | None:
+        """Return the window with the latest window_end today."""
+        today = now.date()
+        today_windows = [w for w in windows if w.event_start.date() == today]
+        return max(today_windows, key=lambda w: w.window_end) if today_windows else None
+
     def update_settings(self, pre_event_triggers: list[int]) -> None:
         self.pre_event_triggers = sorted(pre_event_triggers, reverse=True)
         _LOGGER.info(

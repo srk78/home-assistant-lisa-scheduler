@@ -7,7 +7,14 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
 from custom_components.lisa_scheduler.scraper import Event
-from custom_components.lisa_scheduler.const import EVENT_TYPE_TRAINING
+from custom_components.lisa_scheduler.const import (
+    EVENT_TYPE_TRAINING,
+    EVENT_FIRST_EVENT_STARTED,
+    EVENT_LAST_EVENT_ENDED,
+    EVENT_PRE_FIRST_EVENT_TRIGGER,
+    EVENT_PRE_LAST_EVENT_END_TRIGGER,
+    EVENT_POST_LAST_EVENT_TRIGGER,
+)
 
 
 @pytest.fixture
@@ -186,5 +193,150 @@ async def test_coordinator_no_duplicate_events(mock_hass):
     coordinator.is_window_active = True
     coordinator.is_event_active = True
     coordinator._fire_transition_events(True, True, now)
+
+    mock_hass.bus.async_fire.assert_not_called()
+
+
+def _make_today_events(now, count=2):
+    """Create `count` non-overlapping future events today (anchored to `now`)."""
+    events = []
+    base = now + timedelta(hours=1)
+    for i in range(count):
+        start = base + timedelta(hours=i * 3)
+        end = start + timedelta(hours=2)
+        events.append(
+            Event(
+                event_type=EVENT_TYPE_TRAINING,
+                start_time=start,
+                end_time=end,
+                title=f"Event {i + 1}",
+            )
+        )
+    return events
+
+
+@pytest.mark.asyncio
+async def test_first_and_last_event_of_day_triggers(mock_hass):
+    """Verify first_event_started and last_event_ended fire at the right times."""
+    coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False, pre_event_triggers=[0])
+
+    now = datetime.now()
+    events = _make_today_events(now, count=2)
+    # Manually load windows so no scraping is needed
+    coordinator.events = events
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+
+    first_event_start = events[0].start_time
+    last_event_end = events[-1].end_time
+
+    # --- Advance to just after first event starts ---
+    t1 = first_event_start + timedelta(seconds=30)
+    coordinator._fire_day_boundary_events(t1)
+
+    fired_events = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
+    assert EVENT_FIRST_EVENT_STARTED in fired_events
+    assert EVENT_LAST_EVENT_ENDED not in fired_events
+
+    mock_hass.bus.async_fire.reset_mock()
+
+    # --- Advance to just after last event ends ---
+    t2 = last_event_end + timedelta(seconds=30)
+    coordinator._fire_day_boundary_events(t2)
+
+    fired_events2 = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
+    assert EVENT_LAST_EVENT_ENDED in fired_events2
+
+    # Calling again should NOT re-fire (deduplication)
+    mock_hass.bus.async_fire.reset_mock()
+    coordinator._fire_day_boundary_events(t2 + timedelta(seconds=60))
+    mock_hass.bus.async_fire.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_pre_post_day_boundary_triggers(mock_hass):
+    """Verify pre_first, pre_last_end and post_last triggers fire correctly."""
+    now = datetime.now()
+    events = _make_today_events(now, count=2)
+
+    coordinator = _make_coordinator(
+        mock_hass,
+        enabled=True,
+        dry_run=False,
+        pre_event_triggers=[0],
+        pre_first_event_triggers=[30],
+        pre_last_event_end_triggers=[15],
+        post_last_event_triggers=[10],
+    )
+    coordinator.events = events
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+
+    first_event_start = events[0].start_time
+    last_window_end = events[-1].end_time
+
+    # --- Fire pre_first trigger (30 min before first event) ---
+    t_pre_first = first_event_start - timedelta(minutes=30) + timedelta(seconds=10)
+    coordinator._fire_day_boundary_events(t_pre_first)
+    fired = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
+    assert EVENT_PRE_FIRST_EVENT_TRIGGER in fired
+    assert EVENT_PRE_LAST_EVENT_END_TRIGGER not in fired
+    assert EVENT_POST_LAST_EVENT_TRIGGER not in fired
+
+    mock_hass.bus.async_fire.reset_mock()
+
+    # --- Fire pre_last_end trigger (15 min before last window ends) ---
+    t_pre_last_end = last_window_end - timedelta(minutes=15) + timedelta(seconds=10)
+    coordinator._fire_day_boundary_events(t_pre_last_end)
+    fired2 = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
+    assert EVENT_PRE_LAST_EVENT_END_TRIGGER in fired2
+
+    mock_hass.bus.async_fire.reset_mock()
+
+    # --- Fire post_last trigger (10 min after last window ends) ---
+    t_post_last = last_window_end + timedelta(minutes=10) + timedelta(seconds=10)
+    coordinator._fire_day_boundary_events(t_post_last)
+    fired3 = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
+    assert EVENT_POST_LAST_EVENT_TRIGGER in fired3
+
+    # Payload should include minutes_after
+    post_call = next(
+        c for c in mock_hass.bus.async_fire.call_args_list
+        if c[0][0] == EVENT_POST_LAST_EVENT_TRIGGER
+    )
+    assert post_call[0][1]["minutes_after"] == 10
+
+
+@pytest.mark.asyncio
+async def test_day_boundary_events_disabled_coordinator(mock_hass):
+    """Day boundary events must not fire when coordinator is disabled."""
+    now = datetime.now()
+    events = _make_today_events(now, count=1)
+
+    coordinator = _make_coordinator(mock_hass, enabled=False, pre_event_triggers=[0])
+    coordinator.events = events
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+
+    t = events[0].start_time + timedelta(seconds=30)
+    coordinator._fire_day_boundary_events(t)
+
+    mock_hass.bus.async_fire.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_day_boundary_events_dry_run(mock_hass):
+    """In dry_run mode, day boundary events must NOT call async_fire."""
+    now = datetime.now()
+    events = _make_today_events(now, count=1)
+
+    coordinator = _make_coordinator(
+        mock_hass, enabled=True, dry_run=True, pre_event_triggers=[0],
+        pre_first_event_triggers=[5],
+        post_last_event_triggers=[5],
+    )
+    coordinator.events = events
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+
+    # After first event and after last window ends
+    t = events[0].end_time + timedelta(minutes=6)
+    coordinator._fire_day_boundary_events(t)
 
     mock_hass.bus.async_fire.assert_not_called()
