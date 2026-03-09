@@ -5,18 +5,20 @@ tags: [scraper, configuration, advanced]
 
 # Configuring the Scraper (No Code Required)
 
-The ZHC Heating Scheduler now supports **configurable scrapers** - you can adapt it to any website using just configuration, without writing any Python code!
+LISA Scheduler supports **configurable scrapers** — you can adapt it to any website using just configuration, without writing any Python code.
 
 ## Overview
 
 The configurable scraper system allows you to:
 
-- ✅ Scrape multiple URLs (training + matches)
-- ✅ Use CSS selectors to find schedule data
-- ✅ Configure date/time formats
-- ✅ Support different methods (HTML, API, iCal)
-- ✅ Share configurations with other users
-- ✅ Adjust when website structure changes
+- Scrape multiple URLs (e.g. training schedule + match schedule)
+- Use CSS selectors to find schedule data in arbitrary HTML
+- Configure date and time formats to match the site
+- Support different source methods: HTML, JSON API, and iCal
+- Share configurations with other users
+- Adjust when a website's structure changes
+
+For background on how the scraper fits into the overall system, see [[overview|Scraper Overview]].
 
 ## Basic Configuration
 
@@ -25,12 +27,9 @@ The configurable scraper system allows you to:
 Add this to your `configuration.yaml`:
 
 ```yaml
-zhc_heating_scheduler:
-  # Basic settings
-  climate_entity: "climate.plugwise_sa"
-  pre_heat_hours: 2
-  cool_down_minutes: 30
-  
+lisa_scheduler:
+  pre_event_minutes: 120
+
   # Scraper configuration
   scraper_sources:
     - url: "https://www.example.com/training"
@@ -41,7 +40,7 @@ zhc_heating_scheduler:
         date: "span.date"
         time: "span.time"
         title: "span.title"
-    
+
     - url: "https://www.example.com/matches"
       type: match
       method: html
@@ -49,7 +48,7 @@ zhc_heating_scheduler:
         container: "div.match-item"
         date: "span.match-date"
         time: "span.match-time"
-  
+
   # Date/time parsing
   date_format: "%d-%m-%Y"
   time_format: "%H:%M"
@@ -58,30 +57,23 @@ zhc_heating_scheduler:
 
 ### Finding CSS Selectors
 
-> [!TIP]
-> Use your browser's Developer Tools to find CSS selectors!
+Use your browser's Developer Tools to find CSS selectors.
 
-1. **Open the schedule webpage** in Chrome or Firefox
+1. **Open the schedule webpage** in Chrome or Firefox.
 
-2. **Open Developer Tools**
-   - Right-click on an event → **Inspect**
-   - Or press `F12`
+2. **Open Developer Tools** — right-click on an event and choose **Inspect**, or press `F12`.
 
-3. **Find the event container**
-   - Look for the HTML element that wraps each event
-   - Common patterns:
-     - `<div class="event">`
-     - `<tr>` in a table
-     - `<li class="schedule-item">`
+3. **Find the event container** — look for the HTML element that wraps each event. Common patterns:
+   - `<div class="event">`
+   - `<tr>` in a table
+   - `<li class="schedule-item">`
 
-4. **Note the CSS selector**
+4. **Note the CSS selector**:
    - Class: `.event-item` or `div.event`
    - ID: `#schedule-container`
    - Nested: `div.schedule > div.item`
 
-5. **Find date/time/title elements**
-   - Look inside the container for date, time, and title
-   - Note their selectors (usually `span.date`, `div.time`, etc.)
+5. **Find date, time, and title elements** inside the container and note their selectors (typically `span.date`, `div.time`, etc.).
 
 ## Configuration Options
 
@@ -91,9 +83,9 @@ Each source in `scraper_sources` can have:
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
-| `url` | string | ✅ | The webpage or API URL to scrape |
-| `type` | string | ❌ | Event type: `training`, `match`, or `unknown` |
-| `method` | string | ❌ | Scraping method: `html`, `api`, or `ical` |
+| `url` | string | Yes | The webpage or API URL to scrape |
+| `type` | string | No | Event type: `training`, `match`, or `unknown` |
+| `method` | string | No | Scraping method: `html`, `api`, or `ical` |
 | `selectors` | dict | For HTML | CSS selectors for finding data |
 | `api_endpoint` | string | For API | Alternative API endpoint |
 | `api_headers` | dict | For API | HTTP headers to send |
@@ -111,14 +103,14 @@ For HTML sources, configure these selectors:
 | `title` | Element containing event title | `"span.title"` |
 | `location` | Element containing location (optional) | `"span.location"` |
 
-### Date/Time Formats
+### Date and Time Formats
 
 Configure how dates and times are parsed:
 
 | Option | Description | Example |
 |--------|-------------|---------|
-| `date_format` | strptime format for dates | `"%d-%m-%Y"` (31-12-2024) |
-| `time_format` | strptime format for times | `"%H:%M"` (14:30) |
+| `date_format` | strptime format for dates | `"%d-%m-%Y"` → 31-12-2024 |
+| `time_format` | strptime format for times | `"%H:%M"` → 14:30 |
 | `timezone` | Timezone name | `"Europe/Amsterdam"` |
 
 Common date formats:
@@ -170,7 +162,7 @@ scraper_sources:
       date: ".training-date"
       time: ".training-time"
       title: ".training-name"
-  
+
   # Match schedule
   - url: "https://club.com/matches"
     type: match
@@ -181,7 +173,7 @@ scraper_sources:
       title: ".match-title"
 ```
 
-### Example 3: API Source
+### Example 3: JSON API Source
 
 ```yaml
 scraper_sources:
@@ -206,54 +198,29 @@ scraper_sources:
 
 ## Testing Your Configuration
 
-### Method 1: Dry Run Mode
+### Dry Run Mode
 
-1. Enable dry run mode in the integration
-2. Force a schedule refresh
-3. Check the logs for "Found X events"
+1. Enable `dry_run: true` in the integration configuration.
+2. Force a schedule refresh using the `lisa_scheduler.refresh_schedule` service.
+3. Check the Home Assistant logs for lines from `lisa_scheduler` — you will see "Found X events" and details of what transitions would fire without them actually being sent.
 
-### Method 2: YAML Validator
+### Manual Selector Testing
 
-Create a test script:
+Test selectors directly in the browser console before adding them to the config:
+
+```js
+document.querySelectorAll("div.event-item")
+```
+
+If this returns the right elements, the selector is correct.
+
+### Python Date Format Testing
+
+Verify your `date_format` string in a Python shell:
 
 ```python
-from custom_components.zhc_heating_scheduler.scraper_config_validator import ScraperConfigValidator
-import asyncio
-
-config = {
-    "scraper_sources": [
-        {
-            "url": "https://www.example.com/schedule",
-            "type": "training",
-            "method": "html",
-            "selectors": {
-                "container": "div.event",
-                "date": "span.date",
-                "time": "span.time"
-            }
-        }
-    ],
-    "date_format": "%d-%m-%Y",
-    "time_format": "%H:%M",
-    "timezone": "Europe/Amsterdam"
-}
-
-# Validate configuration
-try:
-    validator = ScraperConfigValidator()
-    validator.validate_config(config)
-    print("✅ Configuration is valid!")
-except Exception as e:
-    print(f"❌ Configuration error: {e}")
-
-# Test URL accessibility
-async def test():
-    result = await ScraperConfigValidator.test_url_accessible(
-        "https://www.example.com/schedule"
-    )
-    print(f"URL test: {result}")
-
-asyncio.run(test())
+from datetime import datetime
+datetime.strptime("31-12-2024", "%d-%m-%Y")
 ```
 
 ## Troubleshooting
@@ -261,51 +228,48 @@ asyncio.run(test())
 ### No Events Found
 
 **Check the selectors:**
-1. Open the webpage in a browser
-2. Inspect an event element
-3. Verify your selectors match the actual HTML
-4. Test selectors in browser console: `document.querySelectorAll("div.event")`
+1. Open the webpage in a browser.
+2. Inspect an event element.
+3. Verify your selectors match the actual HTML.
+4. Test in browser console: `document.querySelectorAll("div.event")`
 
-**Check date/time format:**
-1. Look at the actual date/time text on the page
-2. Make sure your `date_format` matches exactly
-3. Test in Python: `datetime.strptime("31-12-2024", "%d-%m-%Y")`
+**Check the date/time format:**
+1. Look at the actual date/time text on the page.
+2. Make sure `date_format` matches exactly.
+3. Test in Python as shown above.
 
 ### Wrong Event Times
 
 **Timezone issues:**
-- Make sure `timezone` matches your location
-- Check if times on website are in a different timezone
+- Make sure `timezone` matches your local timezone.
+- Check whether the website publishes times in a different timezone.
 
 **Date format mismatch:**
-- Verify the date format string is correct
-- European dates are usually day-first: `"%d-%m-%Y"`
-- US dates are usually month-first: `"%m-%d-%Y"`
+- European dates are typically day-first: `"%d-%m-%Y"`
+- US dates are typically month-first: `"%m-%d-%Y"`
 
-### Selectors Don't Find Elements
+### Selectors Do Not Find Elements
 
-**CSS Selector Tips:**
-- Use `.classname` for classes
-- Use `#idname` for IDs
-- Use `tag.classname` to be more specific
-- Use spaces for nested elements: `div.parent span.child`
-- Test in browser console first
+**CSS selector tips:**
+- Use `.classname` for class attributes.
+- Use `#idname` for ID attributes.
+- Use `tag.classname` to be more specific.
+- Use a space for descendant: `div.parent span.child`
+- Test in the browser console before adding to config.
 
-## Advanced: Multiple Event Types from Same URL
+## Advanced: Multiple Event Types from the Same URL
 
-If one URL has both training and matches:
+If one URL has both training and matches, configure two sources pointing to the same URL with different container selectors:
 
 ```yaml
 scraper_sources:
-  # Training events
   - url: "https://club.com/all-events"
     type: training
     selectors:
       container: "div.event.training"
       date: "span.date"
       time: "span.time"
-  
-  # Match events (same URL, different selector)
+
   - url: "https://club.com/all-events"
     type: match
     selectors:
@@ -314,27 +278,25 @@ scraper_sources:
       time: "span.time"
 ```
 
-## ZHC-Specific Configuration
+## Getting Help
 
-For the Zandvoortsche Hockey Club website, see [[zhc-specific|ZHC-Specific Setup]].
+If you cannot figure out the right selectors:
+
+1. Save the webpage HTML (Right-click → Save Page As).
+2. Open a [GitHub issue](https://github.com/stefan/lisa-scheduler/issues) and attach the HTML.
+3. Include the URL of the schedule page if it is publicly accessible.
+
+The user agent sent by the scraper is `HomeAssistant-LISA-Scheduler/1.0`. Some websites block requests without a recognized user agent — if the scraper returns no content, check whether the page loads correctly with that user agent using a tool like `curl -A "HomeAssistant-LISA-Scheduler/1.0" <url>`.
 
 ## Next Steps
 
+- [[overview|Scraper Overview]]
 - [[testing|Test Your Scraper]]
 - [[troubleshooting|Troubleshooting Scraper Issues]]
 - [[../configuration/examples|Configuration Examples]]
 
-## Getting Help
-
-If you can't figure out the selectors:
-
-1. Save the webpage HTML (Right-click → Save Page As)
-2. Share it in a [GitHub issue](https://github.com/stefan/zhc-heating-scheduler/issues)
-3. We can help you find the right selectors!
-
 ---
 
-**Difficulty**: Intermediate  
-**Time needed**: 15-30 minutes  
-**Prerequisites**: Basic understanding of HTML/CSS
-
+**Difficulty**: Intermediate
+**Time needed**: 15–30 minutes
+**Prerequisites**: Basic understanding of HTML and CSS selectors
