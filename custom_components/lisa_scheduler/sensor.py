@@ -261,6 +261,20 @@ class LISALastUpdateSensor(LISASchedulerSensorBase):
     def extra_state_attributes(self) -> dict:
         if not self.coordinator.data:
             return {}
+        events = self.coordinator.data.get("events", [])
+        windows = self.coordinator.data.get("event_windows", [])
+        return {
+            "scraped_events": events,
+            "scraped_event_count": len(events),
+            "event_windows": windows,
+            "event_window_count": len(windows),
+            "last_error": self.coordinator.data.get("last_error"),
+        }
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        if not self.coordinator.data:
+            return {}
         return {
             "last_error": self.coordinator.data.get("last_error"),
             "event_count": len(self.coordinator.data.get("events", [])),
