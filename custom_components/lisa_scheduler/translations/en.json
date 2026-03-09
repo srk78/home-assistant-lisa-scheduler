@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "ZHC Scheduler",
+        "title": "LISA Scheduler",
         "description": "Set up the event scheduler. It will fire Home Assistant events when your club's schedule starts and ends, so you can trigger automations for heating, lighting, screens, or anything else.",
         "data": {
           "schedule_url": "Schedule URL",
@@ -24,7 +24,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "ZHC Scheduler Options",
+        "title": "LISA Scheduler Options",
         "data": {
           "pre_event_minutes": "Pre-event lead time (minutes)",
           "scan_interval": "Schedule refresh interval (seconds)",

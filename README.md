@@ -1,4 +1,4 @@
-# ZHC Heating Scheduler
+# LISA Scheduler
 
 Automatic heating control for field hockey clubs based on training and match schedules.
 
@@ -11,7 +11,7 @@ Automatic heating control for field hockey clubs based on training and match sch
 1. Install via HACS or manually
 2. Restart Home Assistant
 3. Go to Settings → Devices & Services → Add Integration
-4. Search for "ZHC Heating Scheduler"
+4. Search for "LISA Scheduler"
 5. Follow the setup wizard
 
 **Detailed guide:** [Installation via UI](docs/quick-start/installation-ui.md)
@@ -31,7 +31,7 @@ Automatic heating control for field hockey clubs based on training and match sch
 ### Basic YAML Example
 
 ```yaml
-zhc_heating_scheduler:
+lisa_scheduler:
   climate_entity: "climate.plugwise_sa"
   pre_heat_hours: 2
   cool_down_minutes: 30
@@ -76,7 +76,7 @@ zhc_heating_scheduler:
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/stefan/zhc-heating-scheduler/issues)
+- **Issues:** [GitHub Issues](https://github.com/stefan/lisa-scheduler/issues)
 - **Forum:** [Home Assistant Community](https://community.home-assistant.io/)
 - **Guide:** [Troubleshooting](docs/troubleshooting/common-issues.md)
 

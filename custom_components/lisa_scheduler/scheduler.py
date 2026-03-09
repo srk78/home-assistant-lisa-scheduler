@@ -1,4 +1,4 @@
-"""Event scheduler logic for ZHC Scheduler."""
+"""Event scheduler logic for LISA Scheduler."""
 from __future__ import annotations
 
 import logging

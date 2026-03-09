@@ -133,7 +133,7 @@ class ScraperConfigValidator:
                     url,
                     timeout=aiohttp.ClientTimeout(total=timeout),
                     headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-ZHC-Scheduler/1.0)"
+                        "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-LISA-Scheduler/1.0)"
                     }
                 ) as response:
                     if response.status == 200:

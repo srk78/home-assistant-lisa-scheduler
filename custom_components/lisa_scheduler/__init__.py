@@ -1,4 +1,4 @@
-"""The ZHC Scheduler integration."""
+"""The LISA Scheduler integration."""
 from __future__ import annotations
 
 import logging
@@ -38,7 +38,7 @@ from .const import (
     SERVICE_REFRESH_SCHEDULE,
     SERVICE_SET_OVERRIDE,
 )
-from .coordinator import ZHCHeatingCoordinator
+from .coordinator import LISASchedulerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ CONFIG_SCHEMA = vol.Schema(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the ZHC Scheduler component from YAML."""
+    """Set up the LISA Scheduler component from YAML."""
     hass.data.setdefault(DOMAIN, {})
 
     if DOMAIN not in config:
@@ -82,10 +82,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up ZHC Scheduler from a config entry."""
-    _LOGGER.info("Setting up ZHC Scheduler")
+    """Set up LISA Scheduler from a config entry."""
+    _LOGGER.info("Setting up LISA Scheduler")
 
-    coordinator = ZHCHeatingCoordinator(
+    coordinator = LISASchedulerCoordinator(
         hass,
         entry.data[CONF_SCHEDULE_URL],
         entry.options.get(CONF_PRE_EVENT_MINUTES, entry.data.get(CONF_PRE_EVENT_MINUTES, DEFAULT_PRE_EVENT_MINUTES)),
@@ -142,7 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    _LOGGER.info("Unloading ZHC Scheduler")
+    _LOGGER.info("Unloading LISA Scheduler")
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 

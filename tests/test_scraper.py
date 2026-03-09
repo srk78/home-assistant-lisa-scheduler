@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from custom_components.zhc_heating_scheduler.scraper import (
+from custom_components.lisa_scheduler.scraper import (
     Event,
     ScheduleScraper,
     EVENT_TYPE_TRAINING,
@@ -205,7 +205,7 @@ async def test_scraper_filter_events_by_date():
 @pytest.mark.asyncio 
 async def test_custom_scraper_inheritance():
     """Test that CustomScheduleScraper can be inherited."""
-    from custom_components.zhc_heating_scheduler.scraper import CustomScheduleScraper
+    from custom_components.lisa_scheduler.scraper import CustomScheduleScraper
     
     scraper = CustomScheduleScraper("http://example.com")
     assert isinstance(scraper, ScheduleScraper)

@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.zhc_heating_scheduler.coordinator import ZHCHeatingCoordinator
-from custom_components.zhc_heating_scheduler.scraper import Event
-from custom_components.zhc_heating_scheduler.const import EVENT_TYPE_TRAINING
+from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
+from custom_components.lisa_scheduler.scraper import Event
+from custom_components.lisa_scheduler.const import EVENT_TYPE_TRAINING
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def _make_coordinator(mock_hass, **kwargs):
         dry_run=False,
     )
     defaults.update(kwargs)
-    return ZHCHeatingCoordinator(hass=mock_hass, **defaults)
+    return LISASchedulerCoordinator(hass=mock_hass, **defaults)
 
 
 @pytest.mark.asyncio
@@ -144,7 +144,7 @@ async def test_coordinator_fires_window_started(mock_hass):
 
     mock_hass.bus.async_fire.assert_called_once()
     call_args = mock_hass.bus.async_fire.call_args[0]
-    assert call_args[0] == "zhc_scheduler_window_started"
+    assert call_args[0] == "lisa_scheduler_window_started"
 
 
 @pytest.mark.asyncio
@@ -159,7 +159,7 @@ async def test_coordinator_fires_window_ended(mock_hass):
 
     mock_hass.bus.async_fire.assert_called_once()
     call_args = mock_hass.bus.async_fire.call_args[0]
-    assert call_args[0] == "zhc_scheduler_window_ended"
+    assert call_args[0] == "lisa_scheduler_window_ended"
 
 
 @pytest.mark.asyncio
@@ -172,7 +172,7 @@ async def test_coordinator_fires_event_started(mock_hass):
     coordinator._fire_transition_events(True, True, now)
 
     fired = [c[0][0] for c in mock_hass.bus.async_fire.call_args_list]
-    assert "zhc_scheduler_event_started" in fired
+    assert "lisa_scheduler_event_started" in fired
 
 
 @pytest.mark.asyncio

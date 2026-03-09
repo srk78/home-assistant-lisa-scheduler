@@ -1,0 +1,18 @@
+{
+  "domain": "lisa_scheduler",
+  "name": "LISA Scheduler",
+  "codeowners": ["@stefan"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/stefan/lisa-scheduler",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/stefan/lisa-scheduler/issues",
+  "requirements": [
+    "beautifulsoup4>=4.12.2",
+    "python-dateutil>=2.8.2",
+    "icalendar>=5.0.0"
+  ],
+  "version": "0.3.0"
+}
+

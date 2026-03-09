@@ -1,4 +1,4 @@
-"""Sensor platform for ZHC Scheduler."""
+"""Sensor platform for LISA Scheduler."""
 from __future__ import annotations
 
 import logging
@@ -11,11 +11,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import ZHCHeatingCoordinator
+from .coordinator import LISASchedulerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,37 +26,47 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: ZHCHeatingCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LISASchedulerCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([
-        ZHCNextWindowStartSensor(coordinator, config_entry),
-        ZHCNextWindowEndSensor(coordinator, config_entry),
-        ZHCNextEventStartSensor(coordinator, config_entry),
-        ZHCCurrentEventSensor(coordinator, config_entry),
-        ZHCEventsTodaySensor(coordinator, config_entry),
-        ZHCWindowMinutesTodaySensor(coordinator, config_entry),
-        ZHCTotalWindowsSensor(coordinator, config_entry),
-        ZHCLastUpdateSensor(coordinator, config_entry),
+        LISANextWindowStartSensor(coordinator, config_entry),
+        LISANextWindowEndSensor(coordinator, config_entry),
+        LISANextEventStartSensor(coordinator, config_entry),
+        LISACurrentEventSensor(coordinator, config_entry),
+        LISAEventsTodaySensor(coordinator, config_entry),
+        LISAWindowMinutesTodaySensor(coordinator, config_entry),
+        LISATotalWindowsSensor(coordinator, config_entry),
+        LISALastUpdateSensor(coordinator, config_entry),
     ])
 
 
-class ZHCSchedulerSensorBase(CoordinatorEntity, SensorEntity):
+class LISASchedulerSensorBase(CoordinatorEntity, SensorEntity):
     def __init__(
         self,
-        coordinator: ZHCHeatingCoordinator,
+        coordinator: LISASchedulerCoordinator,
         config_entry: ConfigEntry,
         sensor_type: str,
         name: str,
     ) -> None:
         super().__init__(coordinator)
+        self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_type}"
-        self._attr_name = f"ZHC {name}"
+        self._attr_name = name
         self._attr_has_entity_name = True
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._config_entry.entry_id)},
+            name="LISA Scheduler",
+            manufacturer="LISA",
+            model="Event Scheduler",
+        )
 
-class ZHCNextWindowStartSensor(ZHCSchedulerSensorBase):
+
+class LISANextWindowStartSensor(LISASchedulerSensorBase):
     """Timestamp when the next (or current) pre-event window starts."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "next_window_start", "Next Window Start")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-start"
@@ -88,10 +99,10 @@ class ZHCNextWindowStartSensor(ZHCSchedulerSensorBase):
         return {}
 
 
-class ZHCNextWindowEndSensor(ZHCSchedulerSensorBase):
+class LISANextWindowEndSensor(LISASchedulerSensorBase):
     """Timestamp when the next (or current) window ends."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "next_window_end", "Next Window End")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-end"
@@ -111,10 +122,10 @@ class ZHCNextWindowEndSensor(ZHCSchedulerSensorBase):
         return None
 
 
-class ZHCNextEventStartSensor(ZHCSchedulerSensorBase):
+class LISANextEventStartSensor(LISASchedulerSensorBase):
     """Timestamp when the next actual event starts."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "next_event_start", "Next Event Start")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:calendar-arrow-right"
@@ -130,10 +141,10 @@ class ZHCNextEventStartSensor(ZHCSchedulerSensorBase):
         return None
 
 
-class ZHCCurrentEventSensor(ZHCSchedulerSensorBase):
+class LISACurrentEventSensor(LISASchedulerSensorBase):
     """Name of the current or next event."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "current_event", "Current Event")
         self._attr_icon = "mdi:calendar"
 
@@ -173,10 +184,10 @@ class ZHCCurrentEventSensor(ZHCSchedulerSensorBase):
         return {}
 
 
-class ZHCEventsTodaySensor(ZHCSchedulerSensorBase):
+class LISAEventsTodaySensor(LISASchedulerSensorBase):
     """Number of event windows today."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "events_today", "Events Today")
         self._attr_icon = "mdi:calendar-today"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -188,10 +199,10 @@ class ZHCEventsTodaySensor(ZHCSchedulerSensorBase):
         return self.coordinator.data.get("summary", {}).get("windows_today", 0)
 
 
-class ZHCWindowMinutesTodaySensor(ZHCSchedulerSensorBase):
+class LISAWindowMinutesTodaySensor(LISASchedulerSensorBase):
     """Total minutes inside event windows today."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "window_minutes_today", "Window Minutes Today")
         self._attr_icon = "mdi:timer"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -204,10 +215,10 @@ class ZHCWindowMinutesTodaySensor(ZHCSchedulerSensorBase):
         return self.coordinator.data.get("summary", {}).get("total_window_minutes_today", 0)
 
 
-class ZHCTotalWindowsSensor(ZHCSchedulerSensorBase):
+class LISATotalWindowsSensor(LISASchedulerSensorBase):
     """Total number of upcoming event windows."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "total_windows", "Total Event Windows")
         self._attr_icon = "mdi:calendar-multiselect"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -225,10 +236,10 @@ class ZHCTotalWindowsSensor(ZHCSchedulerSensorBase):
         return {"event_windows": self.coordinator.data.get("event_windows", [])}
 
 
-class ZHCLastUpdateSensor(ZHCSchedulerSensorBase):
+class LISALastUpdateSensor(LISASchedulerSensorBase):
     """Timestamp of the last schedule fetch."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "last_update", "Last Schedule Update")
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:update"

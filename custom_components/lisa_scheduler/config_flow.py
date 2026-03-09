@@ -1,4 +1,4 @@
-"""Config flow for ZHC Scheduler integration."""
+"""Config flow for LISA Scheduler integration."""
 from __future__ import annotations
 
 import logging
@@ -44,8 +44,8 @@ async def validate_schedule_url(hass: HomeAssistant, url: str) -> bool:
         return False
 
 
-class ZHCHeatingSchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for ZHC Scheduler."""
+class LISASchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for LISA Scheduler."""
 
     VERSION = 1
 
@@ -62,7 +62,7 @@ class ZHCHeatingSchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not errors:
                 await self.async_set_unique_id(user_input[CONF_SCHEDULE_URL])
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title="ZHC Scheduler", data=user_input)
+                return self.async_create_entry(title="LISA Scheduler", data=user_input)
 
         data_schema = vol.Schema(
             {
@@ -89,18 +89,18 @@ class ZHCHeatingSchedulerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Import a config entry from configuration.yaml."""
         await self.async_set_unique_id(import_config[CONF_SCHEDULE_URL])
         self._abort_if_unique_id_configured()
-        return self.async_create_entry(title="ZHC Scheduler", data=import_config)
+        return self.async_create_entry(title="LISA Scheduler", data=import_config)
 
     @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> ZHCHeatingSchedulerOptionsFlow:
-        return ZHCHeatingSchedulerOptionsFlow(config_entry)
+    ) -> LISASchedulerOptionsFlow:
+        return LISASchedulerOptionsFlow(config_entry)
 
 
-class ZHCHeatingSchedulerOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for ZHC Scheduler."""
+class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for LISA Scheduler."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry

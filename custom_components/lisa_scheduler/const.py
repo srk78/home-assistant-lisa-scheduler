@@ -1,6 +1,6 @@
-"""Constants for the ZHC Scheduler integration."""
+"""Constants for the LISA Scheduler integration."""
 
-DOMAIN = "zhc_heating_scheduler"
+DOMAIN = "lisa_scheduler"
 
 # Configuration keys
 CONF_SCHEDULE_URL = "schedule_url"
@@ -16,10 +16,10 @@ DEFAULT_ENABLED = True
 DEFAULT_DRY_RUN = False
 
 # HA event names fired on state transitions
-EVENT_WINDOW_STARTED = "zhc_scheduler_window_started"
-EVENT_WINDOW_ENDED = "zhc_scheduler_window_ended"
-EVENT_EVENT_STARTED = "zhc_scheduler_event_started"
-EVENT_EVENT_ENDED = "zhc_scheduler_event_ended"
+EVENT_WINDOW_STARTED = "lisa_scheduler_window_started"
+EVENT_WINDOW_ENDED = "lisa_scheduler_window_ended"
+EVENT_EVENT_STARTED = "lisa_scheduler_event_started"
+EVENT_EVENT_ENDED = "lisa_scheduler_event_ended"
 
 # Service names
 SERVICE_REFRESH_SCHEDULE = "refresh_schedule"
@@ -46,7 +46,7 @@ UPDATE_INTERVAL_SCHEDULE = 21600  # 6 hours
 UPDATE_INTERVAL_STATE = 60  # 1 minute for state checks
 
 # Logging
-LOGGER_NAME = "custom_components.zhc_heating_scheduler"
+LOGGER_NAME = "custom_components.lisa_scheduler"
 
 # Scraper configuration
 CONF_SCRAPER_SOURCES = "scraper_sources"

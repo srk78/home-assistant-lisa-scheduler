@@ -1,4 +1,4 @@
-"""Data update coordinator for ZHC Scheduler."""
+"""Data update coordinator for LISA Scheduler."""
 from __future__ import annotations
 
 import logging
@@ -32,7 +32,7 @@ from .configurable_scraper import ConfigurableScraper
 _LOGGER = logging.getLogger(__name__)
 
 
-class ZHCHeatingCoordinator(DataUpdateCoordinator):
+class LISASchedulerCoordinator(DataUpdateCoordinator):
     """Coordinator that tracks the scraped schedule and fires HA events on transitions."""
 
     def __init__(

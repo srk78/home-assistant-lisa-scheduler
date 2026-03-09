@@ -2,12 +2,12 @@
 import pytest
 from datetime import datetime, timedelta
 
-from custom_components.zhc_heating_scheduler.scheduler import (
+from custom_components.lisa_scheduler.scheduler import (
     EventWindow,
     EventScheduler,
 )
-from custom_components.zhc_heating_scheduler.scraper import Event
-from custom_components.zhc_heating_scheduler.const import EVENT_TYPE_TRAINING
+from custom_components.lisa_scheduler.scraper import Event
+from custom_components.lisa_scheduler.const import EVENT_TYPE_TRAINING
 
 
 @pytest.fixture

@@ -16,7 +16,7 @@ from .scraper import Event, ScheduleScraper
 _LOGGER = logging.getLogger(__name__)
 
 
-class ZHCCustomScraper(ScheduleScraper):
+class LISACustomScraper(ScheduleScraper):
     """Custom scraper for ZHC website with LISA integration."""
 
     def __init__(
@@ -147,7 +147,7 @@ class ZHCCustomScraper(ScheduleScraper):
                 url,
                 timeout=aiohttp.ClientTimeout(total=30),
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-ZHC-Scheduler/1.0)",
+                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-LISA-Scheduler/1.0)",
                     "Accept": "text/html,application/json",
                 },
             ) as response:
@@ -271,7 +271,7 @@ class ZHCCustomScraper(ScheduleScraper):
                 api_url,
                 timeout=aiohttp.ClientTimeout(total=30),
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-ZHC-Scheduler/1.0)",
+                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-LISA-Scheduler/1.0)",
                     "Accept": "application/json",
                 },
             ) as response:

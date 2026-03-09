@@ -1,2 +1,2 @@
-"""Tests for ZHC Heating Scheduler."""
+"""Tests for LISA Scheduler."""
 

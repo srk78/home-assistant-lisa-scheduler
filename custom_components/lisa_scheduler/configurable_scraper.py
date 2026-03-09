@@ -1,4 +1,4 @@
-"""Configurable scraper for ZHC Heating Scheduler."""
+"""Configurable scraper for LISA Scheduler."""
 from __future__ import annotations
 
 import logging
@@ -207,7 +207,7 @@ class ConfigurableScraper(ScheduleScraper):
                 url,
                 timeout=aiohttp.ClientTimeout(total=30),
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-ZHC-Scheduler/1.0)"
+                    "User-Agent": "Mozilla/5.0 (compatible; HomeAssistant-LISA-Scheduler/1.0)"
                 },
             ) as response:
                 response.raise_for_status()

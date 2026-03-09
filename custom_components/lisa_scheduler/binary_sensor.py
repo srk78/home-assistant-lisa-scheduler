@@ -1,4 +1,4 @@
-"""Binary sensor platform for ZHC Scheduler."""
+"""Binary sensor platform for LISA Scheduler."""
 from __future__ import annotations
 
 import logging
@@ -9,11 +9,12 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import ZHCHeatingCoordinator
+from .coordinator import LISASchedulerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,33 +24,43 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: ZHCHeatingCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LISASchedulerCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([
-        ZHCWindowActiveSensor(coordinator, config_entry),
-        ZHCEventActiveSensor(coordinator, config_entry),
-        ZHCSchedulerEnabledSensor(coordinator, config_entry),
-        ZHCManualOverrideSensor(coordinator, config_entry),
+        LISAWindowActiveSensor(coordinator, config_entry),
+        LISAEventActiveSensor(coordinator, config_entry),
+        LISASchedulerEnabledSensor(coordinator, config_entry),
+        LISAManualOverrideSensor(coordinator, config_entry),
     ])
 
 
-class ZHCBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
+class LISABinarySensorBase(CoordinatorEntity, BinarySensorEntity):
     def __init__(
         self,
-        coordinator: ZHCHeatingCoordinator,
+        coordinator: LISASchedulerCoordinator,
         config_entry: ConfigEntry,
         sensor_type: str,
         name: str,
     ) -> None:
         super().__init__(coordinator)
+        self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}_{sensor_type}"
-        self._attr_name = f"ZHC {name}"
+        self._attr_name = name
         self._attr_has_entity_name = True
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._config_entry.entry_id)},
+            name="LISA Scheduler",
+            manufacturer="LISA",
+            model="Event Scheduler",
+        )
 
-class ZHCWindowActiveSensor(ZHCBinarySensorBase):
+
+class LISAWindowActiveSensor(LISABinarySensorBase):
     """True while the pre-event window is active (lead time + event duration)."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "window_active", "Window Active")
         self._attr_icon = "mdi:calendar-clock"
 
@@ -77,10 +88,10 @@ class ZHCWindowActiveSensor(ZHCBinarySensorBase):
         return attributes
 
 
-class ZHCEventActiveSensor(ZHCBinarySensorBase):
+class LISAEventActiveSensor(LISABinarySensorBase):
     """True only during the actual event time (not the pre-event lead time)."""
 
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "event_active", "Event Active")
         self._attr_icon = "mdi:calendar-check"
 
@@ -113,8 +124,8 @@ class ZHCEventActiveSensor(ZHCBinarySensorBase):
         return {}
 
 
-class ZHCSchedulerEnabledSensor(ZHCBinarySensorBase):
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+class LISASchedulerEnabledSensor(LISABinarySensorBase):
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "scheduler_enabled", "Scheduler Enabled")
         self._attr_icon = "mdi:power"
 
@@ -125,8 +136,8 @@ class ZHCSchedulerEnabledSensor(ZHCBinarySensorBase):
         return self.coordinator.data.get("enabled", False)
 
 
-class ZHCManualOverrideSensor(ZHCBinarySensorBase):
-    def __init__(self, coordinator: ZHCHeatingCoordinator, config_entry: ConfigEntry) -> None:
+class LISAManualOverrideSensor(LISABinarySensorBase):
+    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
         super().__init__(coordinator, config_entry, "manual_override", "Manual Override Active")
         self._attr_icon = "mdi:hand-back-right"
 
