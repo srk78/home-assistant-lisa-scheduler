@@ -84,10 +84,10 @@ class LISANextWindowStartSensor(LISASchedulerSensorBase):
         if summary.get("is_window_active"):
             current = summary.get("current_window")
             if current:
-                return datetime.fromisoformat(current["window_start"])
+                return dt_util.as_local(datetime.fromisoformat(current["window_start"]))
         next_w = summary.get("next_window")
         if next_w:
-            return datetime.fromisoformat(next_w["window_start"])
+            return dt_util.as_local(datetime.fromisoformat(next_w["window_start"]))
         return None
 
     @property
@@ -120,10 +120,10 @@ class LISANextWindowEndSensor(LISASchedulerSensorBase):
         if summary.get("is_window_active"):
             current = summary.get("current_window")
             if current:
-                return datetime.fromisoformat(current["window_end"])
+                return dt_util.as_local(datetime.fromisoformat(current["window_end"]))
         next_w = summary.get("next_window")
         if next_w:
-            return datetime.fromisoformat(next_w["window_end"])
+            return dt_util.as_local(datetime.fromisoformat(next_w["window_end"]))
         return None
 
 
@@ -142,7 +142,7 @@ class LISANextEventStartSensor(LISASchedulerSensorBase):
         summary = self.coordinator.data.get("summary", {})
         window = summary.get("current_window") or summary.get("next_window")
         if window:
-            return datetime.fromisoformat(window["event_start"])
+            return dt_util.as_local(datetime.fromisoformat(window["event_start"]))
         return None
 
 
