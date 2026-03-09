@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
+from homeassistant.util import dt as dt_util
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -254,7 +255,7 @@ class LISALastUpdateSensor(LISASchedulerSensorBase):
             return None
         last_update = self.coordinator.data.get("last_schedule_update")
         if last_update:
-            return datetime.fromisoformat(last_update)
+            return dt_util.as_local(datetime.fromisoformat(last_update))
         return None
 
     @property
