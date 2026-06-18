@@ -1,9 +1,10 @@
 """Tests for the coordinator."""
 import pytest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
 from custom_components.lisa_scheduler.scraper import Event
@@ -30,7 +31,7 @@ def mock_hass():
 
 @pytest.fixture
 def sample_events():
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
     return [
         Event(
             event_type=EVENT_TYPE_TRAINING,
@@ -62,6 +63,17 @@ async def test_coordinator_initialization(mock_hass):
     assert coordinator.scheduler.pre_event_minutes == 120
     assert coordinator.enabled is True
     assert coordinator.dry_run is False
+    assert coordinator.timezone_name == "Europe/Amsterdam"
+
+
+def test_coordinator_schedule_now_uses_configured_timezone(mock_hass):
+    coordinator = _make_coordinator(mock_hass, timezone="UTC")
+
+    now = coordinator._schedule_now()
+
+    assert now.tzinfo is None
+    utc_now = datetime.now(UTC).replace(tzinfo=None)
+    assert abs((now - utc_now).total_seconds()) < 5
 
 
 @pytest.mark.asyncio
@@ -107,7 +119,7 @@ async def test_coordinator_calculate_window_state_disabled(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_calculate_window_state_with_override(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True)
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
     coordinator.set_override(now - timedelta(minutes=30), now + timedelta(hours=2))
     assert coordinator._calculate_window_state(now) is True
 
@@ -137,6 +149,67 @@ async def test_coordinator_should_refresh_schedule(mock_hass):
 
 
 @pytest.mark.asyncio
+async def test_refresh_schedule_preserves_cached_data_on_failure(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    now = coordinator._schedule_now()
+    event = Event(
+        EVENT_TYPE_TRAINING,
+        start_time=now + timedelta(hours=2),
+        end_time=now + timedelta(hours=3),
+        title="Cached Event",
+    )
+    coordinator.events = [event]
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
+        coordinator.events, now=now
+    )
+    coordinator.last_schedule_update = now
+    cached_windows = list(coordinator.event_windows)
+    coordinator.scraper.fetch_schedule = AsyncMock(side_effect=RuntimeError("boom"))
+
+    await coordinator._refresh_schedule()
+
+    assert coordinator.events == [event]
+    assert coordinator.event_windows == cached_windows
+    assert coordinator.last_refresh_failed is True
+    assert coordinator.last_error == "Schedule refresh failed: boom"
+    assert coordinator._is_schedule_stale(coordinator._schedule_now()) is True
+
+
+@pytest.mark.asyncio
+async def test_refresh_schedule_raises_without_cached_data(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    coordinator.scraper.fetch_schedule = AsyncMock(side_effect=RuntimeError("boom"))
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._refresh_schedule()
+
+    assert coordinator.last_refresh_failed is True
+    assert coordinator.last_schedule_update is None
+
+
+@pytest.mark.asyncio
+async def test_refresh_schedule_success_clears_stale_error_state(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    now = coordinator._schedule_now()
+    event = Event(
+        EVENT_TYPE_TRAINING,
+        start_time=now + timedelta(hours=2),
+        end_time=now + timedelta(hours=3),
+        title="Fresh Event",
+    )
+    coordinator.last_error = "old error"
+    coordinator.last_refresh_failed = True
+    coordinator.scraper.fetch_schedule = AsyncMock(return_value=[event])
+
+    await coordinator._refresh_schedule()
+
+    assert coordinator.events == [event]
+    assert coordinator.last_error is None
+    assert coordinator.last_refresh_failed is False
+    assert coordinator._is_schedule_stale(coordinator._schedule_now()) is False
+
+
+@pytest.mark.asyncio
 async def test_coordinator_dry_run_mode(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=True)
     assert coordinator.dry_run is True
@@ -145,7 +218,7 @@ async def test_coordinator_dry_run_mode(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_fires_window_started(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False)
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
 
     # Transition: not active → active
     coordinator.is_window_active = False
@@ -159,7 +232,7 @@ async def test_coordinator_fires_window_started(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_fires_window_ended(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False)
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
 
     # Transition: active → not active
     coordinator.is_window_active = True
@@ -174,7 +247,7 @@ async def test_coordinator_fires_window_ended(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_fires_event_started(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False)
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
 
     coordinator.is_window_active = True
     coordinator.is_event_active = False
@@ -187,7 +260,7 @@ async def test_coordinator_fires_event_started(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_no_duplicate_events(mock_hass):
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False)
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
 
     # No state change — no events should fire
     coordinator.is_window_active = True
@@ -220,7 +293,7 @@ async def test_first_and_last_event_of_day_triggers(mock_hass):
     """Verify first_event_started and last_event_ended fire at the right times."""
     coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False, pre_event_triggers=[0])
 
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
     events = _make_today_events(now, count=2)
     # Manually load windows so no scraping is needed
     coordinator.events = events
@@ -255,7 +328,7 @@ async def test_first_and_last_event_of_day_triggers(mock_hass):
 @pytest.mark.asyncio
 async def test_pre_post_day_boundary_triggers(mock_hass):
     """Verify pre_first, pre_last_end and post_last triggers fire correctly."""
-    now = datetime.now()
+    now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
     events = _make_today_events(now, count=2)
 
     coordinator = _make_coordinator(

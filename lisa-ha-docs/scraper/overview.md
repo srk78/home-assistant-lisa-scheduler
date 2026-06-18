@@ -15,7 +15,7 @@ The scraper runs on a configurable interval (default: every 6 hours). Between fe
 
 ## The Scraper Hierarchy
 
-The integration has three scraper classes, each building on the one below it.
+The integration ships with two scraper classes, each building on the one below it.
 
 ### ScheduleScraper (base)
 
@@ -41,13 +41,9 @@ For `api` and `ical` sources, any timezone-aware datetimes from the source are n
 
 **When to use**: Set `scraper_sources` in the integration config. The coordinator detects this key and switches to `ConfigurableScraper` automatically.
 
-### LISACustomScraper (site-specific example)
+### Custom subclasses
 
-`LISACustomScraper` is a subclass of `ScheduleScraper` written for a specific website. It demonstrates how to override `_parse_html()` to handle non-standard page structures: it tries to extract embedded JSON first, then falls back to detecting an API endpoint in the page, and finally falls back to standard HTML parsing.
-
-This class is not used unless the integration is explicitly configured to use it. It serves as a reference for anyone who needs to write a site-specific scraper for a website that cannot be handled by CSS selectors alone.
-
-**When to use**: If `ConfigurableScraper` cannot handle your site's structure, subclass `ScheduleScraper`, override `_parse_html()`, and refer to `LISACustomScraper` as an example. See [[../../development/|Development]] for guidance.
+If `ConfigurableScraper` cannot handle your site's structure, create a custom subclass of `ScheduleScraper` outside the shipped integration and override `_parse_html()`. The packaged integration intentionally keeps only the generic and configurable scraper paths so runtime scraper selection stays explicit and predictable.
 
 ## Choosing a Scraper
 
@@ -56,7 +52,7 @@ Does your site have a simple HTML schedule table or list?
   Yes → Use schedule_url (ScheduleScraper, no extra config)
   No  → Does your site have a CSS-selectable structure, API, or iCal feed?
           Yes → Use scraper_sources (ConfigurableScraper)
-          No  → Write a custom subclass of ScheduleScraper
+          No  → Write and maintain a custom subclass of ScheduleScraper outside the integration
 ```
 
 ## How Scraped Events Become HA Events

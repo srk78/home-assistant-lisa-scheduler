@@ -1,74 +1,61 @@
-# Example configuration for ZHC Heating Scheduler
-# Copy this to your Home Assistant configuration.yaml and modify as needed
+# Example configuration for LISA Scheduler
+# Copy this to your Home Assistant configuration.yaml and modify as needed.
 
-zhc_heating_scheduler:
-  # Required: URL of your club's schedule page
+lisa_scheduler:
+  # Required: URL of your club's schedule page.
   schedule_url: "https://www.your-club.com/schedule"
-  
-  # Required: Entity ID of your climate device (thermostat)
-  climate_entity: "climate.plugwise_sa"
-  
-  # Optional: How many hours before an event to start heating
-  # Default: 2 hours
-  pre_heat_hours: 2
-  
-  # Optional: How many minutes before event end to stop heating
-  # Default: 30 minutes
-  cool_down_minutes: 30
-  
-  # Optional: Target temperature when heating (in Celsius)
-  # Default: 20.0
-  target_temperature: 20.0
-  
-  # Optional: How often to refresh schedule from website (in seconds)
+
+  # Optional: minutes before event start when HA events should fire.
+  # The largest value also determines when the pre-event window opens.
+  # Default: [120]
+  pre_event_triggers:
+    - 120
+    - 30
+
+  # Optional: how often to refresh the schedule from the website, in seconds.
   # Default: 21600 (6 hours)
   # Minimum: 600 (10 minutes)
   # Maximum: 86400 (24 hours)
   scan_interval: 21600
-  
-  # Optional: Enable or disable the scheduler
+
+  # Optional: enable or disable the scheduler.
   # Default: true
   enabled: true
-  
-  # Optional: Dry run mode - logs actions without controlling heating
-  # Useful for testing before going live
+
+  # Optional: dry run mode logs transitions without firing HA events.
   # Default: false
   dry_run: false
 
 
-# Optional: Enable debug logging to troubleshoot issues
+# Optional: enable debug logging to troubleshoot scraper issues.
 logger:
   default: info
   logs:
-    custom_components.zhc_heating_scheduler: debug
+    custom_components.lisa_scheduler: debug
 
 
-# Example automation: Notify when heating starts
+# Example automation: notify when a pre-event trigger fires.
 automation:
-  - alias: "Notify when club heating starts"
+  - alias: "LISA: notify before club event"
     trigger:
-      - platform: state
-        entity_id: binary_sensor.zhc_heating_active
-        to: "on"
+      - platform: event
+        event_type: lisa_scheduler_pre_event_trigger
+        event_data:
+          minutes_before: 30
     action:
       - service: notify.mobile_app
         data:
-          title: "Club Heating Started"
-          message: "Heating started for {{ state_attr('sensor.zhc_current_event', 'events')[0].title if state_attr('sensor.zhc_current_event', 'events') else 'upcoming event' }}"
+          title: "Club event soon"
+          message: "An event starts in 30 minutes."
 
 
-# Example script: Emergency heating override
+# Example script: create a temporary manual activity window.
 script:
-  emergency_club_heating:
-    alias: "Emergency Heating (2 hours)"
-    icon: mdi:fire
+  emergency_club_activity:
+    alias: "Emergency Club Activity Window (2 hours)"
+    icon: mdi:calendar-clock
     sequence:
-      - service: zhc_heating_scheduler.set_override
+      - service: lisa_scheduler.set_override
         data:
           start_time: "{{ now().isoformat() }}"
           end_time: "{{ (now() + timedelta(hours=2)).isoformat() }}"
-      - service: notify.mobile_app
-        data:
-          title: "Emergency Heating Activated"
-          message: "Club heating will run for 2 hours"
-

@@ -9,7 +9,6 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -146,56 +145,63 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for LISA Scheduler."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> dict[str, Any]:
+        errors = {}
+
         if user_input is not None:
             try:
                 user_input[CONF_PRE_EVENT_TRIGGERS] = _parse_triggers(user_input[CONF_PRE_EVENT_TRIGGERS])
                 user_input[CONF_PRE_FIRST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_FIRST_EVENT_TRIGGERS, ""))
                 user_input[CONF_PRE_LAST_EVENT_END_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, ""))
                 user_input[CONF_POST_LAST_EVENT_TRIGGERS] = _parse_optional_triggers(user_input.get(CONF_POST_LAST_EVENT_TRIGGERS, ""))
-            except vol.Invalid:
-                pass  # keep raw strings, coordinator will handle gracefully
-            return self.async_create_entry(title="", data=user_input)
+            except vol.Invalid as err:
+                errors["base"] = "invalid_triggers"
+                _LOGGER.error("Invalid option trigger times: %s", err)
 
-        current_logo_url = self.config_entry.options.get(
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
+
+        current_logo_url = self._config_entry.options.get(
             CONF_LOGO_URL,
-            self.config_entry.data.get(CONF_LOGO_URL, ""),
+            self._config_entry.data.get(CONF_LOGO_URL, ""),
         )
-        current_triggers = self.config_entry.options.get(
+        current_triggers = self._config_entry.options.get(
             CONF_PRE_EVENT_TRIGGERS,
-            self.config_entry.data.get(CONF_PRE_EVENT_TRIGGERS, DEFAULT_PRE_EVENT_TRIGGERS),
+            self._config_entry.data.get(
+                CONF_PRE_EVENT_TRIGGERS, DEFAULT_PRE_EVENT_TRIGGERS
+            ),
         )
         current_triggers_str = ", ".join(str(m) for m in current_triggers)
-        current_pre_first = self.config_entry.options.get(
+        current_pre_first = self._config_entry.options.get(
             CONF_PRE_FIRST_EVENT_TRIGGERS,
-            self.config_entry.data.get(CONF_PRE_FIRST_EVENT_TRIGGERS, []),
+            self._config_entry.data.get(CONF_PRE_FIRST_EVENT_TRIGGERS, []),
         )
         current_pre_first_str = ", ".join(str(m) for m in current_pre_first)
-        current_pre_last_end = self.config_entry.options.get(
+        current_pre_last_end = self._config_entry.options.get(
             CONF_PRE_LAST_EVENT_END_TRIGGERS,
-            self.config_entry.data.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, []),
+            self._config_entry.data.get(CONF_PRE_LAST_EVENT_END_TRIGGERS, []),
         )
         current_pre_last_end_str = ", ".join(str(m) for m in current_pre_last_end)
-        current_post_last = self.config_entry.options.get(
+        current_post_last = self._config_entry.options.get(
             CONF_POST_LAST_EVENT_TRIGGERS,
-            self.config_entry.data.get(CONF_POST_LAST_EVENT_TRIGGERS, []),
+            self._config_entry.data.get(CONF_POST_LAST_EVENT_TRIGGERS, []),
         )
         current_post_last_str = ", ".join(str(m) for m in current_post_last)
-        current_scan_interval = self.config_entry.options.get(
+        current_scan_interval = self._config_entry.options.get(
             CONF_SCAN_INTERVAL,
-            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            self._config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        current_enabled = self.config_entry.options.get(
+        current_enabled = self._config_entry.options.get(
             CONF_ENABLED,
-            self.config_entry.data.get(CONF_ENABLED, DEFAULT_ENABLED),
+            self._config_entry.data.get(CONF_ENABLED, DEFAULT_ENABLED),
         )
-        current_dry_run = self.config_entry.options.get(
+        current_dry_run = self._config_entry.options.get(
             CONF_DRY_RUN,
-            self.config_entry.data.get(CONF_DRY_RUN, DEFAULT_DRY_RUN),
+            self._config_entry.data.get(CONF_DRY_RUN, DEFAULT_DRY_RUN),
         )
 
         options_schema = vol.Schema(
@@ -214,4 +220,6 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
             }
         )
 
-        return self.async_show_form(step_id="init", data_schema=options_schema)
+        return self.async_show_form(
+            step_id="init", data_schema=options_schema, errors=errors
+        )

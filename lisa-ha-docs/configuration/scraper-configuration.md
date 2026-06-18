@@ -24,9 +24,8 @@ For complete scraper configuration guide, see:
 ## Basic Scraper Configuration
 
 ```yaml
-zhc_heating_scheduler:
-  climate_entity: "climate.plugwise_sa"
-  
+lisa_scheduler:
+  schedule_url: "https://club.com/schedule"
   scraper_sources:
     - url: "https://club.com/schedule"
       type: training
@@ -56,4 +55,3 @@ scraper_sources:
 ---
 
 **Next**: [[../scraper/configuring-scraper|Full Scraper Configuration Guide]]
-

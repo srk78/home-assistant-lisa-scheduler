@@ -67,6 +67,10 @@ class LISASchedulerSensorBase(CoordinatorEntity, SensorEntity):
             info["configuration_url"] = self.coordinator.logo_url
         return info
 
+    def _timestamp_value(self, value: str) -> datetime:
+        """Return an HA-local aware timestamp from a schedule-local ISO value."""
+        return dt_util.as_local(self.coordinator.localize_schedule_datetime(value))
+
 
 class LISANextWindowStartSensor(LISASchedulerSensorBase):
     """Timestamp when the next (or current) pre-event window starts."""
@@ -84,10 +88,10 @@ class LISANextWindowStartSensor(LISASchedulerSensorBase):
         if summary.get("is_window_active"):
             current = summary.get("current_window")
             if current:
-                return dt_util.as_local(datetime.fromisoformat(current["window_start"]))
+                return self._timestamp_value(current["window_start"])
         next_w = summary.get("next_window")
         if next_w:
-            return dt_util.as_local(datetime.fromisoformat(next_w["window_start"]))
+            return self._timestamp_value(next_w["window_start"])
         return None
 
     @property
@@ -120,10 +124,10 @@ class LISANextWindowEndSensor(LISASchedulerSensorBase):
         if summary.get("is_window_active"):
             current = summary.get("current_window")
             if current:
-                return dt_util.as_local(datetime.fromisoformat(current["window_end"]))
+                return self._timestamp_value(current["window_end"])
         next_w = summary.get("next_window")
         if next_w:
-            return dt_util.as_local(datetime.fromisoformat(next_w["window_end"]))
+            return self._timestamp_value(next_w["window_end"])
         return None
 
 
@@ -142,7 +146,7 @@ class LISANextEventStartSensor(LISASchedulerSensorBase):
         summary = self.coordinator.data.get("summary", {})
         window = summary.get("current_window") or summary.get("next_window")
         if window:
-            return dt_util.as_local(datetime.fromisoformat(window["event_start"]))
+            return self._timestamp_value(window["event_start"])
         return None
 
 
@@ -255,7 +259,7 @@ class LISALastUpdateSensor(LISASchedulerSensorBase):
             return None
         last_update = self.coordinator.data.get("last_schedule_update")
         if last_update:
-            return dt_util.as_local(datetime.fromisoformat(last_update))
+            return self._timestamp_value(last_update)
         return None
 
     @property
@@ -270,13 +274,8 @@ class LISALastUpdateSensor(LISASchedulerSensorBase):
             "event_windows": windows,
             "event_window_count": len(windows),
             "last_error": self.coordinator.data.get("last_error"),
-        }
-
-    @property
-    def extra_state_attributes(self) -> dict:
-        if not self.coordinator.data:
-            return {}
-        return {
-            "last_error": self.coordinator.data.get("last_error"),
-            "event_count": len(self.coordinator.data.get("events", [])),
+            "last_refresh_attempt": self.coordinator.data.get("last_refresh_attempt"),
+            "last_refresh_failed": self.coordinator.data.get("last_refresh_failed"),
+            "schedule_stale": self.coordinator.data.get("schedule_stale"),
+            "timezone": self.coordinator.data.get("timezone"),
         }

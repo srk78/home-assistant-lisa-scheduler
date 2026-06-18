@@ -53,7 +53,7 @@ All notable changes to the LISA Scheduler integration.
 - CSS selector configuration — point the scraper at the right elements without code changes.
 - API and iCal source types — built-in support alongside HTML scraping.
 - Configuration validator — validates scraper config and surfaces helpful error messages.
-- Documentation overhaul — reorganised into an Obsidian-style `docs/` folder with a UI installation guide, scraper configuration guide, and cross-linked reference pages.
+- Documentation overhaul — reorganised into an Obsidian-style `lisa-ha-docs/` folder with a UI installation guide, scraper configuration guide, and cross-linked reference pages.
 
 ### Changed
 
@@ -71,7 +71,7 @@ All notable changes to the LISA Scheduler integration.
 ### Added — Initial Release
 
 - Core Home Assistant custom component with config flow (UI) and YAML configuration support.
-- Schedule scraping via generic HTML parser (BeautifulSoup4) with multiple parsing strategies and a ZHC custom scraper example.
+- Schedule scraping via generic HTML parser (BeautifulSoup4) with multiple parsing strategies.
 - `EventScheduler` that converts scraped events into `EventWindow` objects and merges overlapping windows.
 - Binary sensors: Window Active, Scheduler Enabled, Manual Override Active.
 - Sensors: Next Window Start, Next Window End, Current Event, Events Today, Window Minutes Today, Total Event Windows, Last Schedule Update.

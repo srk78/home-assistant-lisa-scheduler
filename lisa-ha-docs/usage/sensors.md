@@ -99,7 +99,7 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 **State**: Integer
 
 **Attributes**:
-- `heating_windows`: List of all windows in the schedule
+- `event_windows`: List of all windows in the schedule
 
 ---
 
@@ -112,7 +112,12 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 **Attributes**:
 - `last_error`: Error message from the last failed update, if any
-- `event_count`: Number of events parsed from the last fetch
+- `last_refresh_attempt`: Timestamp of the latest refresh attempt
+- `last_refresh_failed`: Whether the latest refresh attempt failed
+- `schedule_stale`: Whether the cached schedule should be considered stale
+- `timezone`: Timezone used for schedule-local timestamps
+- `scraped_event_count`: Number of events parsed from the last successful fetch
+- `event_window_count`: Number of event windows built from the last successful fetch
 
 **Use cases**:
 - Alert when the schedule has not refreshed in too long

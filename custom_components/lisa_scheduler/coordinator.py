@@ -4,17 +4,17 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import aiohttp
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .const import (
-    CONF_SCRAPER_SOURCES,
-    CONF_DATE_FORMAT,
-    CONF_TIME_FORMAT,
-    CONF_TIMEZONE,
     DEFAULT_DATE_FORMAT,
     DEFAULT_TIME_FORMAT,
     DEFAULT_TIMEZONE,
@@ -29,7 +29,6 @@ from .const import (
     EVENT_PRE_FIRST_EVENT_TRIGGER,
     EVENT_PRE_LAST_EVENT_END_TRIGGER,
     EVENT_POST_LAST_EVENT_TRIGGER,
-    UPDATE_INTERVAL_SCHEDULE,
 )
 from .scheduler import EventScheduler, EventWindow
 from .scraper import Event, ScheduleScraper
@@ -71,12 +70,20 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.scan_interval = scan_interval
         self.enabled = enabled
         self.dry_run = dry_run
+        self.timezone_name = timezone
+        try:
+            self.schedule_timezone = ZoneInfo(timezone)
+        except ZoneInfoNotFoundError:
+            _LOGGER.warning("Invalid timezone %s, using %s", timezone, DEFAULT_TIMEZONE)
+            self.timezone_name = DEFAULT_TIMEZONE
+            self.schedule_timezone = ZoneInfo(DEFAULT_TIMEZONE)
 
         self.pre_first_event_triggers = sorted(pre_first_event_triggers or [], reverse=True)
         self.pre_last_event_end_triggers = sorted(pre_last_event_end_triggers or [], reverse=True)
         self.post_last_event_triggers = sorted(post_last_event_triggers or [], reverse=True)
 
         self.scheduler = EventScheduler(pre_event_triggers)
+        self.scraper: ScheduleScraper
 
         if scraper_sources:
             _LOGGER.info("Using configurable scraper with %d sources", len(scraper_sources))
@@ -95,7 +102,9 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.events: list[Event] = []
         self.event_windows: list[EventWindow] = []
         self.last_schedule_update: datetime | None = None
+        self.last_refresh_attempt: datetime | None = None
         self.last_error: str | None = None
+        self.last_refresh_failed: bool = False
         self.is_window_active: bool = False
         self.is_event_active: bool = False
         self.manual_override: tuple[datetime, datetime] | None = None
@@ -108,7 +117,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
-            now = datetime.now()
+            now = self._schedule_now()
             if self._should_refresh_schedule(now):
                 await self._refresh_schedule()
 
@@ -141,6 +150,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             self._fire_day_boundary_events(now)
 
             summary = self.scheduler.get_schedule_summary(self.event_windows, now)
+            schedule_stale = self._is_schedule_stale(now)
 
             return {
                 "is_window_active": self.is_window_active,
@@ -153,15 +163,36 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                     if self.last_schedule_update
                     else None
                 ),
+                "last_refresh_attempt": (
+                    self.last_refresh_attempt.isoformat()
+                    if self.last_refresh_attempt
+                    else None
+                ),
                 "last_error": self.last_error,
+                "last_refresh_failed": self.last_refresh_failed,
+                "schedule_stale": schedule_stale,
+                "timezone": self.timezone_name,
                 "summary": summary,
                 "manual_override": self.manual_override is not None,
             }
+        except UpdateFailed:
+            raise
 
         except Exception as err:
             self.last_error = str(err)
             _LOGGER.error("Error updating coordinator: %s", err, exc_info=True)
             raise UpdateFailed(f"Error communicating with schedule: {err}")
+
+    def _schedule_now(self) -> datetime:
+        """Return the current time as a naive datetime in the schedule timezone."""
+        return datetime.now(self.schedule_timezone).replace(tzinfo=None)
+
+    def localize_schedule_datetime(self, value: datetime | str) -> datetime:
+        """Attach the schedule timezone to a stored naive local datetime."""
+        dt_value = datetime.fromisoformat(value) if isinstance(value, str) else value
+        if dt_value.tzinfo is None:
+            return dt_value.replace(tzinfo=self.schedule_timezone)
+        return dt_value.astimezone(self.schedule_timezone)
 
     def _should_refresh_schedule(self, now: datetime) -> bool:
         if self.last_schedule_update is None:
@@ -169,35 +200,56 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         time_since_update = (now - self.last_schedule_update).total_seconds()
         return time_since_update >= self.scan_interval
 
+    def _is_schedule_stale(self, now: datetime) -> bool:
+        if self.last_refresh_failed:
+            return True
+        if self.last_schedule_update is None:
+            return True
+        age = (now - self.last_schedule_update).total_seconds()
+        return age > self.scan_interval * 2
+
     async def _refresh_schedule(self) -> None:
+        now = self._schedule_now()
+        self.last_refresh_attempt = now
         try:
             _LOGGER.info("Refreshing schedule from website")
             self.events = await self.scraper.fetch_schedule(days_ahead=14)
-            self.event_windows = self.scheduler.calculate_event_windows(self.events)
-            self.last_schedule_update = datetime.now()
+            self.event_windows = self.scheduler.calculate_event_windows(
+                self.events, now=now
+            )
+            self.last_schedule_update = now
             self.last_error = None
+            self.last_refresh_failed = False
             _LOGGER.info(
                 "Schedule updated: %d events, %d windows",
                 len(self.events),
                 len(self.event_windows),
             )
             # Clean up fired trigger keys whose event_start is older than 24 hours
-            cutoff = datetime.now() - timedelta(hours=24)
+            cutoff = now - timedelta(hours=24)
             self._fired_triggers = {
                 (event_start_iso, minutes_before)
                 for event_start_iso, minutes_before in self._fired_triggers
                 if datetime.fromisoformat(event_start_iso) > cutoff
             }
             # Clean up day-keyed tracking sets older than 2 days
-            now = datetime.now()
             day_cutoff = (now - timedelta(days=2)).date().isoformat()
-            for s in (self._fired_first_event_started, self._fired_last_event_ended):
-                s.discard(day_cutoff)
-            for s in (self._fired_pre_first_triggers, self._fired_pre_last_end_triggers, self._fired_post_last_triggers):
-                s.difference_update({k for k in s if k[0] <= day_cutoff})
+            self._fired_first_event_started.discard(day_cutoff)
+            self._fired_last_event_ended.discard(day_cutoff)
+            for trigger_set in (
+                self._fired_pre_first_triggers,
+                self._fired_pre_last_end_triggers,
+                self._fired_post_last_triggers,
+            ):
+                trigger_set.difference_update(
+                    {key for key in trigger_set if key[0] <= day_cutoff}
+                )
         except Exception as e:
             self.last_error = f"Schedule refresh failed: {e}"
+            self.last_refresh_failed = True
             _LOGGER.error(self.last_error, exc_info=True)
+            if self.last_schedule_update is None:
+                raise UpdateFailed(self.last_error) from e
 
     def _calculate_window_state(self, now: datetime) -> bool:
         if not self.enabled:
@@ -356,7 +408,9 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
     ) -> None:
         if pre_event_triggers is not None:
             self.scheduler.update_settings(pre_event_triggers)
-            self.event_windows = self.scheduler.calculate_event_windows(self.events)
+            self.event_windows = self.scheduler.calculate_event_windows(
+                self.events, now=self._schedule_now()
+            )
 
         if scan_interval is not None:
             self.scan_interval = scan_interval

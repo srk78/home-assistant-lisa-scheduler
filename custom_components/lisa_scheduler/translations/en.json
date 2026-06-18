@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "LISA Scheduler",
-        "description": "Set up the event scheduler. It will fire Home Assistant events when your club's schedule starts and ends, so you can trigger automations for heating, lighting, screens, or anything else.",
+        "description": "Set up the event scheduler. It fires Home Assistant events when your club's schedule starts and ends, so your automations can trigger actions such as lighting, notifications, screens, heating, or scripts.",
         "data": {
           "schedule_url": "Schedule URL",
           "logo_url": "Club logo URL (optional)",
