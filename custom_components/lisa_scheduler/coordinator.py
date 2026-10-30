@@ -209,6 +209,10 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         """Return the current time as a naive datetime in the schedule timezone."""
         return datetime.now(self.schedule_timezone).replace(tzinfo=None)
 
+    def schedule_now(self) -> datetime:
+        """Return the current naive schedule-local time for other modules."""
+        return self._schedule_now()
+
     def localize_schedule_datetime(self, value: datetime | str) -> datetime:
         """Attach the schedule timezone to a stored naive local datetime."""
         dt_value = datetime.fromisoformat(value) if isinstance(value, str) else value

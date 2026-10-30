@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **LISA Schedule** sidebar panel listing all upcoming matches and training sessions, with All/Matches/Trainings filter, backed by the `lisa_scheduler/upcoming_events` websocket command.
+- Upcoming Events dashboard card snippet in the dashboard library.
+
 ## [0.2.0] - 2026-03-06
 
 ### Changed

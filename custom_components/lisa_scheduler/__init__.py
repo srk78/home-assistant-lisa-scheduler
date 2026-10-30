@@ -41,6 +41,7 @@ from .const import (
     SERVICE_SET_OVERRIDE,
 )
 from .coordinator import LISASchedulerCoordinator
+from .panel import async_register_panel, async_unregister_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -173,6 +174,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    await async_register_panel(hass)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def handle_refresh_schedule(call: ServiceCall) -> None:
@@ -223,6 +226,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_shutdown()
 
     if not hass.data[DOMAIN]:
+        async_unregister_panel(hass)
         hass.services.async_remove(DOMAIN, SERVICE_REFRESH_SCHEDULE)
         hass.services.async_remove(DOMAIN, SERVICE_ENABLE)
         hass.services.async_remove(DOMAIN, SERVICE_DISABLE)

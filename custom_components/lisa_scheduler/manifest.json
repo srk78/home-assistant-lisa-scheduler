@@ -3,7 +3,7 @@
   "name": "LISA Scheduler",
   "codeowners": ["@stefan"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
   "documentation": "https://github.com/stefan/home-assistant-lisa-scheduler",
   "integration_type": "device",
   "iot_class": "local_polling",

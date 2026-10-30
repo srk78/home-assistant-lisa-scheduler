@@ -51,6 +51,7 @@ Install only the custom cards used by the panel you want:
 | Panel | Best for | Native | Enhanced |
 |-------|----------|--------|----------|
 | [[dashboard-library/operator-overview|Operator Overview]] | Main club operations screen | Yes | Mushroom |
+| [[dashboard-library/upcoming-events|Upcoming Events]] | All upcoming matches and trainings (sidebar panel or card) | Yes | No |
 | [[dashboard-library/today-timeline|Today Timeline]] | Schedule timeline and daily load | Yes | apexcharts-card |
 | [[dashboard-library/manual-override-control|Manual Override Control]] | Quick refresh, pause, and override workflows | Yes | Mushroom + Bubble Card |
 | [[dashboard-library/diagnostics-panel|Diagnostics Panel]] | API and schedule health | Yes | button-card |
