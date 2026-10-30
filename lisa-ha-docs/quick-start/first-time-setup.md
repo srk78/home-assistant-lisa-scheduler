@@ -10,7 +10,7 @@ Complete these steps after installing the LISA Scheduler to confirm everything i
 ## Prerequisites
 
 - Integration installed (via [[installation-ui|UI]] or [[installation-yaml|YAML]])
-- Schedule URL accessible from your Home Assistant host
+- Schedule API accessible from your Home Assistant host
 
 ## Step 1: Verify Integration Status
 
@@ -42,19 +42,19 @@ If any entities are missing, restart Home Assistant and check the logs.
 
 ## Step 3: Fetch the Schedule
 
-Trigger an immediate schedule refresh to confirm the scraper can reach the configured URL and parse events:
+Trigger an immediate schedule refresh to confirm Home Assistant can reach and validate the configured API:
 
 1. Go to **Developer Tools** → **Services**
 2. Select `lisa_scheduler.refresh_schedule`
 3. Click **Call Service**
 4. Go to **Settings** → **System** → **Logs** and search for "lisa"
-5. Look for a message like "Found X events"
+5. Look for a message like "Schedule API updated: X events, Y windows"
 
 If no events are found, see [[../troubleshooting/no-events-found|No Events Found Guide]].
 
 ## Step 4: Review Schedule Data
 
-Check that the parsed data looks correct:
+Check that the API data looks correct:
 
 1. Go to **Developer Tools** → **States**
 2. Find `sensor.lisa_scheduler_current_event` and inspect its state and attributes
@@ -75,7 +75,7 @@ To confirm events reach the bus:
 
 You can also listen to `lisa_scheduler_*` to capture all integration events at once.
 
-The five events fired by the integration are:
+The core transition and per-event trigger events are:
 
 | Event | When it fires |
 |-------|---------------|
@@ -212,6 +212,8 @@ See [[../troubleshooting/no-events-found|No Events Found Guide]].
 1. **Fine-tune triggers** — adjust `pre_event_triggers` values in the integration configuration
 2. **Add automations** — [[../usage/automations|Automation Examples]]
 3. **Customize dashboard** — [[../usage/dashboard-cards|Dashboard Cards]]
+   - Start with [[../usage/dashboard-library/operator-overview|Operator Overview]]
+   - Add [[../usage/dashboard-library/diagnostics-panel|Diagnostics Panel]] for staff-only troubleshooting
 
 ## Getting Help
 

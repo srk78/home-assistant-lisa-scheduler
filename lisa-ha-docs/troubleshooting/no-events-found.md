@@ -1,249 +1,57 @@
 ---
 title: No Events Found
-tags: [troubleshooting, scraper, events]
+tags: [troubleshooting, api, events]
 ---
 
 # No Events Found
 
-Troubleshooting guide when the scheduler can't find events in your schedule.
+An empty API schedule is valid, so first determine whether the API returned no matching records or Home Assistant failed to load the snapshot.
 
-## Symptoms
+## Check The API
 
-- `sensor.lisa_current_event` shows "No events" or "No upcoming events"
-- `sensor.lisa_total_event_windows` is 0
-- Logs show "Found 0 events"
-- No HA bus events are ever fired
+From a host allowed by the API:
 
-## Quick Diagnosis
-
-### Step 1: Verify the Website Works
-
-1. Open the schedule URL in your browser
-2. Confirm events are visible
-3. Note the date/time format used
-4. Check whether JavaScript is needed to load the schedule
-
-### Step 2: Check Logs
-
-Settings → System → Logs, search for `lisa_scheduler`.
-
-Look for:
-- "Fetching schedule from..."
-- "Found X events"
-- Any error messages
-
-### Step 3: Test Manual Refresh
-
-In **Developer Tools** → **Services**, call:
-
-```yaml
-service: lisa_scheduler.refresh_schedule
+```bash
+curl -i "https://schedule.example.com/v1/events?atClubVenue=true"
 ```
 
-Check logs immediately after.
+Confirm:
 
-## Common Causes & Solutions
+- the response is HTTP 200;
+- `data` contains expected events;
+- `meta.timezone` is valid;
+- `meta.truncated` is false;
+- `startsAt` and `endsAt` are present for schedulable records.
 
-### Cause 1: Website Uses JavaScript
+If `data` is empty with `atClubVenue=true`, inspect venue classification in the API. Temporarily test without the venue filter or enable external events in the integration.
 
-**Symptom**: Events are visible in the browser but not found by the scraper
+## Check Access
 
-**Why**: The default scraper only parses static HTML, not JavaScript-loaded content
+A `403` means the API rejected the source address. Add the exact Home Assistant host address to `ALLOWED_CIDRS` and restart the API.
 
-**Solution**: Configure a custom scraper with an API or iCal source, or use CSS selectors targeting the pre-rendered HTML if available
+Do not test only from a laptop browser. Home Assistant may run in another container, VM, or VLAN and present a different address.
 
-See [[../scraper/configuring-scraper|Scraper Configuration Guide]]
+## Check The Date Window
 
-### Cause 2: Wrong CSS Selectors
+The integration requests today through 14 days ahead in the API timezone. Events outside that range are intentionally absent. Unschedulable and cancelled records are also excluded.
 
-**Symptom**: Scraper is configured but still finds no events
+## Check Home Assistant Diagnostics
 
-**Solution**: Find the correct CSS selectors
+Inspect **Last Schedule Update**:
 
-1. Open the website in your browser
-2. Right-click on an event entry → Inspect
-3. Note the HTML structure
-4. Update selectors in the integration configuration
+- `last_refresh_failed`: local API request or validation failure;
+- `last_error`: the corresponding error text;
+- `upstream_stale` and `upstream_partial`: retained API data is not fully fresh;
+- `upstream_error_category`: upstream synchronization failure category;
+- `upstream_record_counts`: records known by the API;
+- `upstream_unschedulable_counts`: records without usable event times.
 
-Example:
-```yaml
-scraper_sources:
-  - url: "https://club.com/schedule"
-    selectors:
-      container: "div.event-item"  # Update this
-      date: "span.date-text"        # And this
-      time: "span.time-text"        # And this
-```
+Call `lisa_scheduler.refresh_schedule` after the API has synchronized. This rereads the snapshot and does not initiate synchronization itself.
 
-### Cause 3: Date Format Mismatch
+## Empty Schedule Versus Unavailable Integration
 
-**Symptom**: Logs show "Could not parse datetime"
+- **Entities load and event count is zero:** the API response was valid but no records matched.
+- **Entities are unavailable on first setup:** the API was unreachable, forbidden, malformed, timezone-mismatched, or truncated.
+- **Old events remain with stale attributes:** a prior snapshot loaded successfully and the latest refresh failed or upstream data is stale.
 
-**Solution**: Match the date format to the website
-
-Check what format the website uses:
-- `31-12-2024` → `date_format: "%d-%m-%Y"`
-- `2024-12-31` → `date_format: "%Y-%m-%d"`
-- `12/31/2024` → `date_format: "%m/%d/%Y"`
-
-```yaml
-lisa_scheduler:
-  date_format: "%d-%m-%Y"  # Adjust to match
-  time_format: "%H:%M"
-```
-
-### Cause 4: Events Outside Date Range
-
-**Symptom**: Events exist on the website but are not returned
-
-**Solution**: The scraper only fetches events within the next 14 days by default. Check whether your next event falls within that window.
-
-### Cause 5: Website Blocking Requests
-
-**Symptom**: Logs show connection errors or timeouts
-
-**Solution**:
-1. Confirm the website is accessible from your HA host (not just your local machine)
-2. Verify no firewall is blocking outbound requests
-3. Check whether the website requires authentication
-4. Try a different user agent string
-
-### Cause 6: Wrong Event Type Selector
-
-**Symptom**: Some events are found but not all
-
-**Solution**: Check whether training sessions and matches use different HTML classes
-
-```yaml
-scraper_sources:
-  - url: "https://club.com/schedule"
-    type: training
-    selectors:
-      container: "div.training-event"
-  - url: "https://club.com/schedule"
-    type: match
-    selectors:
-      container: "div.match-event"
-```
-
-## Step-by-Step Troubleshooting
-
-### Step 1: Enable Debug Logging
-
-```yaml
-logger:
-  logs:
-    custom_components.lisa_scheduler: debug
-    custom_components.lisa_scheduler.scraper: debug
-```
-
-Restart Home Assistant.
-
-### Step 2: Analyze HTML Structure
-
-1. Open the schedule URL in your browser
-2. Right-click → "Save Page As" and save as HTML
-3. Open the file in a text editor
-4. Search for the date or time of a known upcoming event
-5. Note the HTML structure surrounding it
-
-### Step 3: Configure the Scraper
-
-Based on the HTML structure, configure the scraper.
-
-See [[../scraper/configuring-scraper|Full Scraper Configuration Guide]]
-
-### Step 4: Test the Configuration
-
-Call `lisa_scheduler.refresh_schedule` and check the logs for improvement.
-
-### Step 5: Iterate
-
-Adjust selectors until events are found. Use the browser console to test selectors before editing the configuration.
-
-## Testing Your Selectors
-
-### Use Browser Console
-
-Test CSS selectors directly in the browser before editing config:
-
-```javascript
-// Test container selector — should return a non-empty NodeList
-document.querySelectorAll("div.event-item")
-
-// Test whether a selector matches anything
-document.querySelector("div.event-item") !== null
-```
-
-## Advanced Solutions
-
-### Option 1: API Instead of HTML
-
-If the club has an API endpoint:
-
-```yaml
-scraper_sources:
-  - url: "https://api.club.com/events"
-    method: api
-    type: training
-```
-
-### Option 2: iCal Feed
-
-If the club publishes an iCal feed:
-
-```yaml
-scraper_sources:
-  - url: "https://club.com/calendar.ics"
-    method: ical
-    type: training
-```
-
-### Option 3: Browser Automation
-
-For complex JavaScript-heavy sites (advanced):
-
-Requires Playwright installation — see developer docs.
-
-## Getting Help
-
-### Information to Provide
-
-When asking for help, provide:
-
-1. Schedule URL (if public)
-2. Screenshot of the schedule page
-3. Saved HTML of the schedule page
-4. Current scraper configuration
-5. Relevant log entries (with debug logging enabled)
-6. Home Assistant version
-
-### Where to Ask
-
-- [GitHub Issues](https://github.com/stefan/lisa-scheduler/issues)
-- [Home Assistant Forum](https://community.home-assistant.io/)
-
-## Checklist
-
-- [ ] Website loads in browser and shows upcoming events
-- [ ] Debug logging enabled
-- [ ] Manual refresh tested and logs reviewed
-- [ ] HTML structure analyzed
-- [ ] Scraper configured (if needed)
-- [ ] CSS selectors tested in browser console
-- [ ] Date format matches website
-- [ ] Time format matches website
-- [ ] Events are within the next 14 days
-
-## See Also
-
-- [[../scraper/configuring-scraper|Scraper Configuration]]
-- [[../scraper/testing|Test Your Scraper]]
-- [[debugging|Debug Logging]]
-- [[common-issues|Common Issues]]
-
----
-
-**Difficulty**: Intermediate
-**Time needed**: 30–60 minutes
-**Next**: [[../scraper/configuring-scraper|Configure Scraper]]
+See [[../configuration/api-connection|API Connection]] and [[debugging|Debug Logging]].

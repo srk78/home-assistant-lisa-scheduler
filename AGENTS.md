@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-LISA Scheduler is a Home Assistant custom integration that scrapes a sports club's event schedule and fires HA bus events on transitions, so automations can trigger any action (heating, lighting, screens, etc.). It does not control devices directly.
+LISA Scheduler is a Home Assistant custom integration that reads normalized events from `lisa-schedule-api` and fires HA bus events on transitions. It does not crawl websites or control devices directly.
 
 ## Development Commands
 
@@ -40,7 +40,7 @@ The integration follows the standard Home Assistant custom component pattern:
 
 **Data flow**:
 1. `LISASchedulerCoordinator` (extends `DataUpdateCoordinator`) polls every 60 seconds
-2. Every `scan_interval` seconds (default 6h), it fetches events via a scraper
+2. Every `scan_interval` seconds (default 10m), it reads the API's persisted event snapshot
 3. `EventScheduler` converts events into `EventWindow` objects: `window_start = event_start − pre_event_minutes`, `window_end = event_end`
 4. Overlapping windows are merged
 5. On each poll the coordinator compares new vs. previous `is_window_active` / `is_event_active` state and fires HA bus events on transitions
@@ -52,11 +52,10 @@ The integration follows the standard Home Assistant custom component pattern:
 - `lisa_scheduler_event_started` — fires when the actual event begins (after lead time)
 - `lisa_scheduler_event_ended` — fires when the event ends
 
-**Scraper hierarchy** (all in `custom_components/lisa_scheduler/`):
-- `ScheduleScraper` — generic base scraper with HTML table/list/calendar fallback strategies
-- `ConfigurableScraper(ScheduleScraper)` — config-driven scraper supporting multiple sources; methods: `html`, `api`, `ical`; uses CSS selectors defined in `scraper_sources` config
-
-The coordinator picks the scraper based on config: if `scraper_sources` is set, it uses `ConfigurableScraper`; otherwise falls back to `ScheduleScraper` with the basic `schedule_url`.
+**Schedule source**:
+- `LisaScheduleApiClient` is the only source implementation.
+- It consumes `GET /v1/events`, validates the complete response, converts UTC timestamps to naive schedule-local datetimes, and retains API freshness metadata.
+- There is no direct website fallback; crawling and persistence belong to `lisa-schedule-api`.
 
 **Entities created**:
 - Binary sensors: `Window Active` (true during entire window), `Event Active` (true only during actual event), `Scheduler Enabled`, `Manual Override Active`
@@ -64,13 +63,15 @@ The coordinator picks the scraper based on config: if `scraper_sources` is set, 
 
 ## Key Configuration
 
-- `pre_event_minutes` — minutes before event start to open the window (default: 120). Range 0–1440.
+- `api_url` — API base URL or full `/v1/events` endpoint.
+- `include_external_events` — include events outside the club venue (default: false).
+- `pre_event_triggers` — minutes before event start; the largest value opens the window (default: `[120]`). Range 0–1440.
 - `dry_run: true` — logs what transitions would fire without actually firing HA events. Use for testing.
-- `scan_interval` — seconds between schedule fetches (default: 21600, range 600–86400)
+- `scan_interval` — seconds between API snapshot reads (default: 600, range 600–86400)
 - Default timezone: `Europe/Amsterdam` (Dutch sports club context)
 
-All datetimes are kept as naive local datetimes throughout the codebase. `ConfigurableScraper` normalises any tz-aware datetimes (from API/iCal sources) to naive by converting to the configured timezone then stripping tzinfo. The base `ScheduleScraper` uses `python-dateutil` flexible parsing and is already naive.
+Internal event/window datetimes remain naive schedule-local values. The API client converts aware API timestamps using `meta.timezone`; timestamp sensors return aware values at the Home Assistant boundary.
 
-## Adding a New Scraper
+## Changing Schedule Data
 
-To add support for a new website, prefer `ConfigurableScraper` with CSS selectors, API endpoints, or iCal feeds in the integration config. If that is not enough, subclass `ScheduleScraper` outside the shipped integration and override `_parse_html()`.
+Add website adapters, venue rules, or normalization behavior to `lisa-schedule-api`. Keep this integration focused on the unified API contract and Home Assistant scheduling behavior.

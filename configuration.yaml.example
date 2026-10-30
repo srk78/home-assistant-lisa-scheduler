@@ -1,33 +1,33 @@
-# Example configuration for LISA Scheduler
-# Copy this to your Home Assistant configuration.yaml and modify as needed.
+# Example configuration for LISA Scheduler.
 
 lisa_scheduler:
-  # Required: URL of your club's schedule page.
-  schedule_url: "https://www.your-club.com/schedule"
+  # Required: lisa-schedule-api base URL or full /v1/events endpoint.
+  api_url: "https://schedule.example.com"
+
+  # Optional: include away and other external-venue events.
+  # Default: false (only events classified at the club venue).
+  include_external_events: false
 
   # Optional: minutes before event start when HA events should fire.
   # The largest value also determines when the pre-event window opens.
-  # Default: [120]
   pre_event_triggers:
     - 120
     - 30
 
-  # Optional: how often to refresh the schedule from the website, in seconds.
-  # Default: 21600 (6 hours)
-  # Minimum: 600 (10 minutes)
-  # Maximum: 86400 (24 hours)
-  scan_interval: 21600
+  # Optional day-boundary trigger lists.
+  pre_first_event_triggers: [60]
+  pre_last_event_end_triggers: [15]
+  post_last_event_triggers: [10]
 
-  # Optional: enable or disable the scheduler.
-  # Default: true
+  # Optional API polling interval in seconds.
+  # Default/minimum: 600 (10 minutes); maximum: 86400 (24 hours).
+  scan_interval: 600
+
   enabled: true
-
-  # Optional: dry run mode logs transitions without firing HA events.
-  # Default: false
   dry_run: false
 
 
-# Optional: enable debug logging to troubleshoot scraper issues.
+# Debug logging helps diagnose API reachability and contract errors.
 logger:
   default: info
   logs:

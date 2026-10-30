@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from .scraper import Event
+from .models import Event
 
 _LOGGER = logging.getLogger(__name__)
 

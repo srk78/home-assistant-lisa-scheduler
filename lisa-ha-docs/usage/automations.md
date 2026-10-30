@@ -332,4 +332,4 @@ automation:
 
 - [[sensors|Available Sensors]] — sensor reference and dashboard examples
 - [[services|Available Services]] — how to trigger schedule refreshes, enable/disable the scheduler, and set manual overrides
-- [[../scraper/overview|Scraper Overview]] — how the integration fetches schedule data
+- [[../configuration/api-connection|API Connection]] — how the integration reads schedule data

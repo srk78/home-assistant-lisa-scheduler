@@ -1,4 +1,5 @@
 """Sensor platform for LISA Scheduler."""
+
 from __future__ import annotations
 
 import logging
@@ -28,19 +29,23 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: LISASchedulerCoordinator = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([
-        LISANextWindowStartSensor(coordinator, config_entry),
-        LISANextWindowEndSensor(coordinator, config_entry),
-        LISANextEventStartSensor(coordinator, config_entry),
-        LISACurrentEventSensor(coordinator, config_entry),
-        LISAEventsTodaySensor(coordinator, config_entry),
-        LISAWindowMinutesTodaySensor(coordinator, config_entry),
-        LISATotalWindowsSensor(coordinator, config_entry),
-        LISALastUpdateSensor(coordinator, config_entry),
-    ])
+    async_add_entities(
+        [
+            LISANextWindowStartSensor(coordinator, config_entry),
+            LISANextWindowEndSensor(coordinator, config_entry),
+            LISANextEventStartSensor(coordinator, config_entry),
+            LISACurrentEventSensor(coordinator, config_entry),
+            LISAEventsTodaySensor(coordinator, config_entry),
+            LISAWindowMinutesTodaySensor(coordinator, config_entry),
+            LISATotalWindowsSensor(coordinator, config_entry),
+            LISALastUpdateSensor(coordinator, config_entry),
+        ]
+    )
 
 
-class LISASchedulerSensorBase(CoordinatorEntity, SensorEntity):
+class LISASchedulerSensorBase(
+    CoordinatorEntity[LISASchedulerCoordinator], SensorEntity
+):
     def __init__(
         self,
         coordinator: LISASchedulerCoordinator,
@@ -75,8 +80,12 @@ class LISASchedulerSensorBase(CoordinatorEntity, SensorEntity):
 class LISANextWindowStartSensor(LISASchedulerSensorBase):
     """Timestamp when the next (or current) pre-event window starts."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "next_window_start", "Next Window Start")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "next_window_start", "Next Window Start"
+        )
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-start"
 
@@ -111,8 +120,12 @@ class LISANextWindowStartSensor(LISASchedulerSensorBase):
 class LISANextWindowEndSensor(LISASchedulerSensorBase):
     """Timestamp when the next (or current) window ends."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "next_window_end", "Next Window End")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "next_window_end", "Next Window End"
+        )
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:clock-end"
 
@@ -134,8 +147,12 @@ class LISANextWindowEndSensor(LISASchedulerSensorBase):
 class LISANextEventStartSensor(LISASchedulerSensorBase):
     """Timestamp when the next actual event starts."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "next_event_start", "Next Event Start")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "next_event_start", "Next Event Start"
+        )
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:calendar-arrow-right"
 
@@ -153,7 +170,9 @@ class LISANextEventStartSensor(LISASchedulerSensorBase):
 class LISACurrentEventSensor(LISASchedulerSensorBase):
     """Name of the current or next event."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, config_entry, "current_event", "Current Event")
         self._attr_icon = "mdi:calendar"
 
@@ -196,7 +215,9 @@ class LISACurrentEventSensor(LISASchedulerSensorBase):
 class LISAEventsTodaySensor(LISASchedulerSensorBase):
     """Number of event windows today."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
         super().__init__(coordinator, config_entry, "events_today", "Events Today")
         self._attr_icon = "mdi:calendar-today"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -211,8 +232,12 @@ class LISAEventsTodaySensor(LISASchedulerSensorBase):
 class LISAWindowMinutesTodaySensor(LISASchedulerSensorBase):
     """Total minutes inside event windows today."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "window_minutes_today", "Window Minutes Today")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "window_minutes_today", "Window Minutes Today"
+        )
         self._attr_icon = "mdi:timer"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = "min"
@@ -221,14 +246,20 @@ class LISAWindowMinutesTodaySensor(LISASchedulerSensorBase):
     def native_value(self) -> int:
         if not self.coordinator.data:
             return 0
-        return self.coordinator.data.get("summary", {}).get("total_window_minutes_today", 0)
+        return self.coordinator.data.get("summary", {}).get(
+            "total_window_minutes_today", 0
+        )
 
 
 class LISATotalWindowsSensor(LISASchedulerSensorBase):
     """Total number of upcoming event windows."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "total_windows", "Total Event Windows")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "total_windows", "Total Event Windows"
+        )
         self._attr_icon = "mdi:calendar-multiselect"
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -248,8 +279,12 @@ class LISATotalWindowsSensor(LISASchedulerSensorBase):
 class LISALastUpdateSensor(LISASchedulerSensorBase):
     """Timestamp of the last schedule fetch."""
 
-    def __init__(self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry) -> None:
-        super().__init__(coordinator, config_entry, "last_update", "Last Schedule Update")
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(
+            coordinator, config_entry, "last_update", "Last Schedule Update"
+        )
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
         self._attr_icon = "mdi:update"
 
@@ -269,13 +304,36 @@ class LISALastUpdateSensor(LISASchedulerSensorBase):
         events = self.coordinator.data.get("events", [])
         windows = self.coordinator.data.get("event_windows", [])
         return {
+            "api_url": self.coordinator.data.get("api_url"),
+            "include_external_events": self.coordinator.data.get(
+                "include_external_events"
+            ),
+            "api_events": events,
+            "api_event_count": len(events),
             "scraped_events": events,
             "scraped_event_count": len(events),
             "event_windows": windows,
             "event_window_count": len(windows),
             "last_error": self.coordinator.data.get("last_error"),
             "last_refresh_attempt": self.coordinator.data.get("last_refresh_attempt"),
+            "last_api_fetch_success": self.coordinator.data.get(
+                "last_api_fetch_success"
+            ),
             "last_refresh_failed": self.coordinator.data.get("last_refresh_failed"),
             "schedule_stale": self.coordinator.data.get("schedule_stale"),
             "timezone": self.coordinator.data.get("timezone"),
+            "api_generated_at": self.coordinator.data.get("api_generated_at"),
+            "upstream_last_attempt": self.coordinator.data.get("upstream_last_attempt"),
+            "upstream_error_category": self.coordinator.data.get(
+                "upstream_error_category"
+            ),
+            "upstream_stale": self.coordinator.data.get("upstream_stale"),
+            "upstream_partial": self.coordinator.data.get("upstream_partial"),
+            "upstream_record_counts": self.coordinator.data.get(
+                "upstream_record_counts", {}
+            ),
+            "upstream_unschedulable_counts": self.coordinator.data.get(
+                "upstream_unschedulable_counts", {}
+            ),
+            "upstream_sources": self.coordinator.data.get("upstream_sources", {}),
         }

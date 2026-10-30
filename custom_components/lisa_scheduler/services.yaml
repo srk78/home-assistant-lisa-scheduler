@@ -1,6 +1,6 @@
 refresh_schedule:
   name: Refresh Schedule
-  description: Force a refresh of the event schedule from the website.
+  description: Reread the latest event snapshot from the configured schedule API.
 
 enable:
   name: Enable Scheduler

@@ -1,4 +1,5 @@
 """Data update coordinator for LISA Scheduler."""
+
 from __future__ import annotations
 
 import logging
@@ -9,14 +10,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import aiohttp
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
 
+from .api_client import LisaScheduleApiClient, ScheduleApiMetadata
 from .const import (
-    DEFAULT_DATE_FORMAT,
-    DEFAULT_TIME_FORMAT,
     DEFAULT_TIMEZONE,
     DOMAIN,
     EVENT_WINDOW_STARTED,
@@ -30,32 +31,29 @@ from .const import (
     EVENT_PRE_LAST_EVENT_END_TRIGGER,
     EVENT_POST_LAST_EVENT_TRIGGER,
 )
+from .models import Event
 from .scheduler import EventScheduler, EventWindow
-from .scraper import Event, ScheduleScraper
-from .configurable_scraper import ConfigurableScraper
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class LISASchedulerCoordinator(DataUpdateCoordinator):
-    """Coordinator that tracks the scraped schedule and fires HA events on transitions."""
+    """Track the API schedule and fire HA events on transitions."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        schedule_url: str,
+        api_url: str,
         pre_event_triggers: list[int] | None = None,
-        scan_interval: int = 21600,
+        scan_interval: int = 600,
         enabled: bool = True,
         dry_run: bool = False,
         logo_url: str = "",
         pre_first_event_triggers: list[int] | None = None,
         pre_last_event_end_triggers: list[int] | None = None,
         post_last_event_triggers: list[int] | None = None,
-        scraper_sources: list[dict] | None = None,
-        date_format: str = DEFAULT_DATE_FORMAT,
-        time_format: str = DEFAULT_TIME_FORMAT,
         timezone: str = DEFAULT_TIMEZONE,
+        include_external_events: bool = False,
         session: aiohttp.ClientSession | None = None,
     ):
         super().__init__(
@@ -65,11 +63,11 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=60),
         )
 
-        self.schedule_url = schedule_url
         self.logo_url = logo_url
         self.scan_interval = scan_interval
         self.enabled = enabled
         self.dry_run = dry_run
+        self.include_external_events = include_external_events
         self.timezone_name = timezone
         try:
             self.schedule_timezone = ZoneInfo(timezone)
@@ -78,33 +76,42 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             self.timezone_name = DEFAULT_TIMEZONE
             self.schedule_timezone = ZoneInfo(DEFAULT_TIMEZONE)
 
-        self.pre_first_event_triggers = sorted(pre_first_event_triggers or [], reverse=True)
-        self.pre_last_event_end_triggers = sorted(pre_last_event_end_triggers or [], reverse=True)
-        self.post_last_event_triggers = sorted(post_last_event_triggers or [], reverse=True)
+        self.pre_first_event_triggers = sorted(
+            pre_first_event_triggers or [], reverse=True
+        )
+        self.pre_last_event_end_triggers = sorted(
+            pre_last_event_end_triggers or [], reverse=True
+        )
+        self.post_last_event_triggers = sorted(
+            post_last_event_triggers or [], reverse=True
+        )
 
         self.scheduler = EventScheduler(pre_event_triggers)
-        self.scraper: ScheduleScraper
-
-        if scraper_sources:
-            _LOGGER.info("Using configurable scraper with %d sources", len(scraper_sources))
-            self.scraper = ConfigurableScraper(
-                sources=scraper_sources,
-                date_format=date_format,
-                time_format=time_format,
-                timezone=timezone,
-                session=session,
-            )
-        else:
-            _LOGGER.info("Using basic scraper for URL: %s", schedule_url)
-            self.scraper = ScheduleScraper(schedule_url, session)
+        self.api_client = LisaScheduleApiClient(
+            api_url=api_url,
+            session=session or async_get_clientsession(hass),
+            timezone=self.timezone_name,
+            include_external_events=include_external_events,
+        )
+        self.api_url = self.api_client.api_url
 
         # State tracking
         self.events: list[Event] = []
         self.event_windows: list[EventWindow] = []
         self.last_schedule_update: datetime | None = None
         self.last_refresh_attempt: datetime | None = None
+        self.last_api_fetch_success: datetime | None = None
+        self.api_generated_at: datetime | None = None
+        self.upstream_last_attempt: datetime | None = None
+        self.upstream_error_category: str | None = None
+        self.upstream_stale = True
+        self.upstream_partial = False
+        self.upstream_record_counts: dict[str, int] = {}
+        self.upstream_unschedulable_counts: dict[str, int] = {}
+        self.upstream_sources: dict[str, Any] = {}
         self.last_error: str | None = None
         self.last_refresh_failed: bool = False
+        self._has_loaded_schedule = False
         self.is_window_active: bool = False
         self.is_event_active: bool = False
         self.manual_override: tuple[datetime, datetime] | None = None
@@ -168,10 +175,25 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                     if self.last_refresh_attempt
                     else None
                 ),
+                "last_api_fetch_success": (
+                    self.last_api_fetch_success.isoformat()
+                    if self.last_api_fetch_success
+                    else None
+                ),
+                "api_generated_at": _isoformat(self.api_generated_at),
+                "upstream_last_attempt": _isoformat(self.upstream_last_attempt),
+                "upstream_error_category": self.upstream_error_category,
+                "upstream_stale": self.upstream_stale,
+                "upstream_partial": self.upstream_partial,
+                "upstream_record_counts": self.upstream_record_counts,
+                "upstream_unschedulable_counts": (self.upstream_unschedulable_counts),
+                "upstream_sources": self.upstream_sources,
                 "last_error": self.last_error,
                 "last_refresh_failed": self.last_refresh_failed,
                 "schedule_stale": schedule_stale,
                 "timezone": self.timezone_name,
+                "api_url": self.api_url,
+                "include_external_events": self.include_external_events,
                 "summary": summary,
                 "manual_override": self.manual_override is not None,
             }
@@ -195,33 +217,43 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         return dt_value.astimezone(self.schedule_timezone)
 
     def _should_refresh_schedule(self, now: datetime) -> bool:
-        if self.last_schedule_update is None:
+        if self.last_api_fetch_success is None:
             return True
-        time_since_update = (now - self.last_schedule_update).total_seconds()
+        time_since_update = (now - self.last_api_fetch_success).total_seconds()
         return time_since_update >= self.scan_interval
 
     def _is_schedule_stale(self, now: datetime) -> bool:
         if self.last_refresh_failed:
             return True
-        if self.last_schedule_update is None:
+        if self.last_api_fetch_success is None:
             return True
-        age = (now - self.last_schedule_update).total_seconds()
-        return age > self.scan_interval * 2
+        age = (now - self.last_api_fetch_success).total_seconds()
+        return (
+            age > self.scan_interval * 2
+            or self.upstream_stale
+            or self.upstream_partial
+            or self.last_schedule_update is None
+        )
 
     async def _refresh_schedule(self) -> None:
         now = self._schedule_now()
         self.last_refresh_attempt = now
         try:
-            _LOGGER.info("Refreshing schedule from website")
-            self.events = await self.scraper.fetch_schedule(days_ahead=14)
-            self.event_windows = self.scheduler.calculate_event_windows(
-                self.events, now=now
-            )
-            self.last_schedule_update = now
+            _LOGGER.info("Refreshing schedule from API")
+            result = await self.api_client.async_fetch(days_ahead=14)
+            new_events = result.events
+            new_windows = self.scheduler.calculate_event_windows(new_events, now=now)
+
+            self.events = new_events
+            self.event_windows = new_windows
+            self._apply_api_metadata(result.metadata)
+            self.last_api_fetch_success = now
             self.last_error = None
             self.last_refresh_failed = False
+            self._has_loaded_schedule = True
             _LOGGER.info(
-                "Schedule updated: %d events, %d windows",
+                "Schedule API %s: %d events, %d windows",
+                "not modified" if result.not_modified else "updated",
                 len(self.events),
                 len(self.event_windows),
             )
@@ -244,12 +276,24 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                 trigger_set.difference_update(
                     {key for key in trigger_set if key[0] <= day_cutoff}
                 )
-        except Exception as e:
-            self.last_error = f"Schedule refresh failed: {e}"
+        except Exception as err:
+            self.last_error = f"Schedule API refresh failed: {err}"
             self.last_refresh_failed = True
             _LOGGER.error(self.last_error, exc_info=True)
-            if self.last_schedule_update is None:
-                raise UpdateFailed(self.last_error) from e
+            if not self._has_loaded_schedule:
+                raise UpdateFailed(self.last_error) from err
+
+    def _apply_api_metadata(self, metadata: ScheduleApiMetadata) -> None:
+        """Store the API's upstream health separately from local fetch state."""
+        self.api_generated_at = metadata.generated_at
+        self.upstream_last_attempt = metadata.last_attempt_at
+        self.last_schedule_update = metadata.last_successful_sync_at
+        self.upstream_error_category = metadata.error_category
+        self.upstream_stale = metadata.stale
+        self.upstream_partial = metadata.partial
+        self.upstream_record_counts = metadata.record_counts
+        self.upstream_unschedulable_counts = metadata.unschedulable_counts
+        self.upstream_sources = metadata.sources
 
     def _calculate_window_state(self, now: datetime) -> bool:
         if not self.enabled:
@@ -304,7 +348,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                 fire_key = (window.event_start.isoformat(), minutes_before)
                 if trigger_time <= now and fire_key not in self._fired_triggers:
                     self._fired_triggers.add(fire_key)
-                    # Only fire if trigger time is within 2 minutes (prevents stale fires after restart)
+                    # Limit trigger catch-up to two minutes after a restart.
                     if trigger_time > now - timedelta(seconds=120):
                         payload = {**window.to_dict(), "minutes_before": minutes_before}
                         _LOGGER.info(
@@ -327,14 +371,21 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
 
         if first_window:
             # first_event_started
-            if first_window.event_start <= now and today_str not in self._fired_first_event_started:
+            if (
+                first_window.event_start <= now
+                and today_str not in self._fired_first_event_started
+            ):
                 self._fired_first_event_started.add(today_str)
                 if first_window.event_start > now - staleness:
                     if self.dry_run:
-                        _LOGGER.info("DRY RUN: would fire lisa_scheduler_first_event_started")
+                        _LOGGER.info(
+                            "DRY RUN: would fire lisa_scheduler_first_event_started"
+                        )
                     else:
                         _LOGGER.info("First event of the day started")
-                        self.hass.bus.async_fire(EVENT_FIRST_EVENT_STARTED, first_window.to_dict())
+                        self.hass.bus.async_fire(
+                            EVENT_FIRST_EVENT_STARTED, first_window.to_dict()
+                        )
 
             # pre_first_event_triggers
             for minutes in self.pre_first_event_triggers:
@@ -344,21 +395,39 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                     self._fired_pre_first_triggers.add(key)
                     if trigger_time > now - staleness:
                         if self.dry_run:
-                            _LOGGER.info("DRY RUN: would fire lisa_scheduler_pre_first_event_trigger minutes_before=%d", minutes)
+                            _LOGGER.info(
+                                "DRY RUN: would fire "
+                                "lisa_scheduler_pre_first_event_trigger "
+                                "minutes_before=%d",
+                                minutes,
+                            )
                         else:
-                            _LOGGER.info("Pre-first-event trigger: %d min before first event", minutes)
-                            self.hass.bus.async_fire(EVENT_PRE_FIRST_EVENT_TRIGGER, {**first_window.to_dict(), "minutes_before": minutes})
+                            _LOGGER.info(
+                                "Pre-first-event trigger: %d min before first event",
+                                minutes,
+                            )
+                            self.hass.bus.async_fire(
+                                EVENT_PRE_FIRST_EVENT_TRIGGER,
+                                {**first_window.to_dict(), "minutes_before": minutes},
+                            )
 
         if last_window:
             # last_event_ended
-            if last_window.window_end <= now and today_str not in self._fired_last_event_ended:
+            if (
+                last_window.window_end <= now
+                and today_str not in self._fired_last_event_ended
+            ):
                 self._fired_last_event_ended.add(today_str)
                 if last_window.window_end > now - staleness:
                     if self.dry_run:
-                        _LOGGER.info("DRY RUN: would fire lisa_scheduler_last_event_ended")
+                        _LOGGER.info(
+                            "DRY RUN: would fire lisa_scheduler_last_event_ended"
+                        )
                     else:
                         _LOGGER.info("Last event of the day ended")
-                        self.hass.bus.async_fire(EVENT_LAST_EVENT_ENDED, last_window.to_dict())
+                        self.hass.bus.async_fire(
+                            EVENT_LAST_EVENT_ENDED, last_window.to_dict()
+                        )
 
             # pre_last_event_end_triggers
             for minutes in self.pre_last_event_end_triggers:
@@ -368,10 +437,22 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                     self._fired_pre_last_end_triggers.add(key)
                     if trigger_time > now - staleness:
                         if self.dry_run:
-                            _LOGGER.info("DRY RUN: would fire lisa_scheduler_pre_last_event_end_trigger minutes_before=%d", minutes)
+                            _LOGGER.info(
+                                "DRY RUN: would fire "
+                                "lisa_scheduler_pre_last_event_end_trigger "
+                                "minutes_before=%d",
+                                minutes,
+                            )
                         else:
-                            _LOGGER.info("Pre-last-event-end trigger: %d min before last event ends", minutes)
-                            self.hass.bus.async_fire(EVENT_PRE_LAST_EVENT_END_TRIGGER, {**last_window.to_dict(), "minutes_before": minutes})
+                            _LOGGER.info(
+                                "Pre-last-event-end trigger: %d min before "
+                                "last event ends",
+                                minutes,
+                            )
+                            self.hass.bus.async_fire(
+                                EVENT_PRE_LAST_EVENT_END_TRIGGER,
+                                {**last_window.to_dict(), "minutes_before": minutes},
+                            )
 
             # post_last_event_triggers
             for minutes in self.post_last_event_triggers:
@@ -381,10 +462,22 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                     self._fired_post_last_triggers.add(key)
                     if trigger_time > now - staleness:
                         if self.dry_run:
-                            _LOGGER.info("DRY RUN: would fire lisa_scheduler_post_last_event_trigger minutes_after=%d", minutes)
+                            _LOGGER.info(
+                                "DRY RUN: would fire "
+                                "lisa_scheduler_post_last_event_trigger "
+                                "minutes_after=%d",
+                                minutes,
+                            )
                         else:
-                            _LOGGER.info("Post-last-event trigger: %d min after last event ended", minutes)
-                            self.hass.bus.async_fire(EVENT_POST_LAST_EVENT_TRIGGER, {**last_window.to_dict(), "minutes_after": minutes})
+                            _LOGGER.info(
+                                "Post-last-event trigger: %d min after last "
+                                "event ended",
+                                minutes,
+                            )
+                            self.hass.bus.async_fire(
+                                EVENT_POST_LAST_EVENT_TRIGGER,
+                                {**last_window.to_dict(), "minutes_after": minutes},
+                            )
 
     def set_enabled(self, enabled: bool) -> None:
         self.enabled = enabled
@@ -424,3 +517,8 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
     async def async_refresh(self) -> None:
         await self._refresh_schedule()
         await self.async_request_refresh()
+
+
+def _isoformat(value: datetime | None) -> str | None:
+    """Serialize an optional timestamp."""
+    return value.isoformat() if value else None

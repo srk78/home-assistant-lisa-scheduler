@@ -5,7 +5,8 @@
         "title": "LISA Scheduler",
         "description": "Set up the event scheduler. It fires Home Assistant events when your club's schedule starts and ends, so your automations can trigger actions such as lighting, notifications, screens, heating, or scripts.",
         "data": {
-          "schedule_url": "Schedule URL",
+          "api_url": "Schedule API URL",
+          "include_external_events": "Include events at external venues",
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",
@@ -14,16 +15,31 @@
           "scan_interval": "Schedule refresh interval (seconds)",
           "dry_run": "Dry run mode (log only, don't fire events)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Schedule API",
+        "description": "Change the lisa-schedule-api endpoint used by this scheduler.",
+        "data": {
+          "api_url": "Schedule API URL"
+        }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the schedule URL",
-      "invalid_url": "Invalid schedule URL",
+      "cannot_connect": "Failed to connect to the schedule API",
+      "forbidden": "The schedule API denied access. Check its ALLOWED_CIDRS setting",
+      "invalid_api_response": "The schedule API returned an invalid or incomplete response",
+      "invalid_timezone": "The schedule API returned an invalid or unexpected timezone",
+      "invalid_url": "Invalid schedule API URL",
       "invalid_triggers": "Invalid trigger times — use comma-separated minutes, e.g. 120, 30",
       "unknown": "Unexpected error occurred"
     },
     "abort": {
-      "already_configured": "This integration is already configured"
+      "already_configured": "This schedule API is already configured",
+      "unique_id_mismatch": "This schedule API is configured by another entry",
+      "cannot_connect": "Failed to connect to the schedule API",
+      "forbidden": "The schedule API denied access",
+      "invalid_api_response": "The schedule API returned an invalid response",
+      "invalid_timezone": "The schedule API returned an invalid timezone"
     }
   },
   "options": {
@@ -31,6 +47,7 @@
       "init": {
         "title": "LISA Scheduler Options",
         "data": {
+          "include_external_events": "Include events at external venues",
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",
@@ -46,7 +63,7 @@
   "services": {
     "refresh_schedule": {
       "name": "Refresh Schedule",
-      "description": "Force a refresh of the event schedule from the website."
+      "description": "Reread the latest event snapshot from the configured schedule API."
     },
     "enable": {
       "name": "Enable Scheduler",

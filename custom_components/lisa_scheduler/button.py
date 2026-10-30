@@ -25,7 +25,7 @@ async def async_setup_entry(
     async_add_entities([LISARefreshButton(coordinator, config_entry)])
 
 
-class LISARefreshButton(CoordinatorEntity, ButtonEntity):
+class LISARefreshButton(CoordinatorEntity[LISASchedulerCoordinator], ButtonEntity):
     """Button that triggers an immediate schedule refresh."""
 
     def __init__(

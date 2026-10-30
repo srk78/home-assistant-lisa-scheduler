@@ -1,4 +1,5 @@
 """Tests for the coordinator."""
+
 import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
@@ -6,8 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
+from custom_components.lisa_scheduler.api_client import (
+    ScheduleApiMetadata,
+    ScheduleFetchResult,
+)
 from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
-from custom_components.lisa_scheduler.scraper import Event
+from custom_components.lisa_scheduler.models import Event
 from custom_components.lisa_scheduler.const import (
     EVENT_TYPE_TRAINING,
     EVENT_FIRST_EVENT_STARTED,
@@ -24,6 +29,7 @@ def mock_hass():
     hass.services = MagicMock()
     hass.services.async_call = AsyncMock()
     hass.async_create_task = MagicMock()
+    hass.async_create_task.side_effect = lambda coroutine: coroutine.close()
     hass.bus = MagicMock()
     hass.bus.async_fire = MagicMock()
     return hass
@@ -42,13 +48,31 @@ def sample_events():
     ]
 
 
+def _api_metadata(*, stale: bool = False, partial: bool = False) -> ScheduleApiMetadata:
+    now = datetime.now(UTC)
+    return ScheduleApiMetadata(
+        timezone="Europe/Amsterdam",
+        generated_at=now,
+        last_attempt_at=now,
+        last_successful_sync_at=now,
+        error_category="games_timeout" if partial else None,
+        stale=stale,
+        partial=partial,
+        record_counts={"games": 1, "trainings": 1},
+        unschedulable_counts={"games": 0, "trainings": 0},
+        sources={"games": {"stale": stale}},
+        truncated=False,
+    )
+
+
 def _make_coordinator(mock_hass, **kwargs):
     defaults = dict(
-        schedule_url="http://example.com/schedule",
+        api_url="http://example.com/v1/events",
         pre_event_triggers=[120],
-        scan_interval=21600,
+        scan_interval=600,
         enabled=True,
         dry_run=False,
+        session=MagicMock(),
     )
     defaults.update(kwargs)
     return LISASchedulerCoordinator(hass=mock_hass, **defaults)
@@ -58,7 +82,7 @@ def _make_coordinator(mock_hass, **kwargs):
 async def test_coordinator_initialization(mock_hass):
     coordinator = _make_coordinator(mock_hass)
 
-    assert coordinator.schedule_url == "http://example.com/schedule"
+    assert coordinator.api_url == "http://example.com/v1/events"
     assert coordinator.scheduler.pre_event_triggers == [120]
     assert coordinator.scheduler.pre_event_minutes == 120
     assert coordinator.enabled is True
@@ -103,7 +127,9 @@ async def test_coordinator_set_override(mock_hass):
 @pytest.mark.asyncio
 async def test_coordinator_clear_override(mock_hass):
     coordinator = _make_coordinator(mock_hass)
-    coordinator.set_override(datetime.now() + timedelta(hours=1), datetime.now() + timedelta(hours=3))
+    coordinator.set_override(
+        datetime.now() + timedelta(hours=1), datetime.now() + timedelta(hours=3)
+    )
     assert coordinator.manual_override is not None
 
     coordinator.clear_override()
@@ -141,7 +167,7 @@ async def test_coordinator_should_refresh_schedule(mock_hass):
 
     assert coordinator._should_refresh_schedule(datetime.now()) is True
 
-    coordinator.last_schedule_update = datetime.now()
+    coordinator.last_api_fetch_success = datetime.now()
     assert coordinator._should_refresh_schedule(datetime.now()) is False
 
     future_time = datetime.now() + timedelta(seconds=3601)
@@ -162,23 +188,25 @@ async def test_refresh_schedule_preserves_cached_data_on_failure(mock_hass):
     coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
         coordinator.events, now=now
     )
-    coordinator.last_schedule_update = now
+    coordinator.last_schedule_update = datetime.now(UTC)
+    coordinator.last_api_fetch_success = now
+    coordinator._has_loaded_schedule = True
     cached_windows = list(coordinator.event_windows)
-    coordinator.scraper.fetch_schedule = AsyncMock(side_effect=RuntimeError("boom"))
+    coordinator.api_client.async_fetch = AsyncMock(side_effect=RuntimeError("boom"))
 
     await coordinator._refresh_schedule()
 
     assert coordinator.events == [event]
     assert coordinator.event_windows == cached_windows
     assert coordinator.last_refresh_failed is True
-    assert coordinator.last_error == "Schedule refresh failed: boom"
+    assert coordinator.last_error == "Schedule API refresh failed: boom"
     assert coordinator._is_schedule_stale(coordinator._schedule_now()) is True
 
 
 @pytest.mark.asyncio
 async def test_refresh_schedule_raises_without_cached_data(mock_hass):
     coordinator = _make_coordinator(mock_hass)
-    coordinator.scraper.fetch_schedule = AsyncMock(side_effect=RuntimeError("boom"))
+    coordinator.api_client.async_fetch = AsyncMock(side_effect=RuntimeError("boom"))
 
     with pytest.raises(UpdateFailed):
         await coordinator._refresh_schedule()
@@ -199,7 +227,9 @@ async def test_refresh_schedule_success_clears_stale_error_state(mock_hass):
     )
     coordinator.last_error = "old error"
     coordinator.last_refresh_failed = True
-    coordinator.scraper.fetch_schedule = AsyncMock(return_value=[event])
+    coordinator.api_client.async_fetch = AsyncMock(
+        return_value=ScheduleFetchResult([event], _api_metadata())
+    )
 
     await coordinator._refresh_schedule()
 
@@ -207,6 +237,55 @@ async def test_refresh_schedule_success_clears_stale_error_state(mock_hass):
     assert coordinator.last_error is None
     assert coordinator.last_refresh_failed is False
     assert coordinator._is_schedule_stale(coordinator._schedule_now()) is False
+
+
+@pytest.mark.asyncio
+async def test_refresh_schedule_accepts_partial_snapshot_as_stale(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    now = coordinator._schedule_now()
+    event = Event(
+        EVENT_TYPE_TRAINING,
+        start_time=now + timedelta(hours=2),
+        end_time=now + timedelta(hours=3),
+        title="Retained API Event",
+    )
+    coordinator.api_client.async_fetch = AsyncMock(
+        return_value=ScheduleFetchResult(
+            [event], _api_metadata(stale=True, partial=True)
+        )
+    )
+
+    await coordinator._refresh_schedule()
+
+    assert coordinator.events == [event]
+    assert coordinator.last_refresh_failed is False
+    assert coordinator.upstream_partial is True
+    assert coordinator.upstream_error_category == "games_timeout"
+    assert coordinator._is_schedule_stale(coordinator._schedule_now()) is True
+
+
+@pytest.mark.asyncio
+async def test_not_modified_refresh_is_successful(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    now = coordinator._schedule_now()
+    event = Event(
+        EVENT_TYPE_TRAINING,
+        start_time=now + timedelta(hours=2),
+        end_time=now + timedelta(hours=3),
+        title="Cached API Event",
+    )
+    coordinator.last_error = "old failure"
+    coordinator.last_refresh_failed = True
+    coordinator.api_client.async_fetch = AsyncMock(
+        return_value=ScheduleFetchResult([event], _api_metadata(), not_modified=True)
+    )
+
+    await coordinator._refresh_schedule()
+
+    assert coordinator.events == [event]
+    assert coordinator.last_api_fetch_success is not None
+    assert coordinator.last_error is None
+    assert coordinator.last_refresh_failed is False
 
 
 @pytest.mark.asyncio
@@ -291,13 +370,17 @@ def _make_today_events(now, count=2):
 @pytest.mark.asyncio
 async def test_first_and_last_event_of_day_triggers(mock_hass):
     """Verify first_event_started and last_event_ended fire at the right times."""
-    coordinator = _make_coordinator(mock_hass, enabled=True, dry_run=False, pre_event_triggers=[0])
+    coordinator = _make_coordinator(
+        mock_hass, enabled=True, dry_run=False, pre_event_triggers=[0]
+    )
 
     now = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
     events = _make_today_events(now, count=2)
     # Manually load windows so no scraping is needed
     coordinator.events = events
-    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
+        events, now=now - timedelta(hours=1)
+    )
 
     first_event_start = events[0].start_time
     last_event_end = events[-1].end_time
@@ -341,7 +424,9 @@ async def test_pre_post_day_boundary_triggers(mock_hass):
         post_last_event_triggers=[10],
     )
     coordinator.events = events
-    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
+        events, now=now - timedelta(hours=1)
+    )
 
     first_event_start = events[0].start_time
     last_window_end = events[-1].end_time
@@ -372,7 +457,8 @@ async def test_pre_post_day_boundary_triggers(mock_hass):
 
     # Payload should include minutes_after
     post_call = next(
-        c for c in mock_hass.bus.async_fire.call_args_list
+        c
+        for c in mock_hass.bus.async_fire.call_args_list
         if c[0][0] == EVENT_POST_LAST_EVENT_TRIGGER
     )
     assert post_call[0][1]["minutes_after"] == 10
@@ -386,7 +472,9 @@ async def test_day_boundary_events_disabled_coordinator(mock_hass):
 
     coordinator = _make_coordinator(mock_hass, enabled=False, pre_event_triggers=[0])
     coordinator.events = events
-    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
+        events, now=now - timedelta(hours=1)
+    )
 
     t = events[0].start_time + timedelta(seconds=30)
     coordinator._fire_day_boundary_events(t)
@@ -401,12 +489,17 @@ async def test_day_boundary_events_dry_run(mock_hass):
     events = _make_today_events(now, count=1)
 
     coordinator = _make_coordinator(
-        mock_hass, enabled=True, dry_run=True, pre_event_triggers=[0],
+        mock_hass,
+        enabled=True,
+        dry_run=True,
+        pre_event_triggers=[0],
         pre_first_event_triggers=[5],
         post_last_event_triggers=[5],
     )
     coordinator.events = events
-    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(events, now=now - timedelta(hours=1))
+    coordinator.event_windows = coordinator.scheduler.calculate_event_windows(
+        events, now=now - timedelta(hours=1)
+    )
 
     # After first event and after last window ends
     t = events[0].end_time + timedelta(minutes=6)

@@ -3,7 +3,10 @@
 DOMAIN = "lisa_scheduler"
 
 # Configuration keys
-CONF_SCHEDULE_URL = "schedule_url"
+CONF_API_URL = "api_url"
+CONF_API_TIMEZONE = "api_timezone"
+CONF_INCLUDE_EXTERNAL_EVENTS = "include_external_events"
+LEGACY_CONF_SCHEDULE_URL = "schedule_url"
 CONF_LOGO_URL = "logo_url"
 CONF_PRE_EVENT_TRIGGERS = "pre_event_triggers"
 CONF_PRE_FIRST_EVENT_TRIGGERS = "pre_first_event_triggers"
@@ -15,7 +18,8 @@ CONF_DRY_RUN = "dry_run"
 
 # Default values
 DEFAULT_PRE_EVENT_TRIGGERS = [120]  # 2 hours
-DEFAULT_SCAN_INTERVAL = 21600  # 6 hours in seconds
+DEFAULT_SCAN_INTERVAL = 600  # 10 minutes in seconds
+DEFAULT_INCLUDE_EXTERNAL_EVENTS = False
 DEFAULT_ENABLED = True
 DEFAULT_DRY_RUN = False
 
@@ -52,33 +56,12 @@ EVENT_TYPE_MATCH = "match"
 EVENT_TYPE_UNKNOWN = "unknown"
 
 # Update intervals
-UPDATE_INTERVAL_SCHEDULE = 21600  # 6 hours
+UPDATE_INTERVAL_SCHEDULE = DEFAULT_SCAN_INTERVAL
 UPDATE_INTERVAL_STATE = 60  # 1 minute for state checks
 
 # Logging
 LOGGER_NAME = "custom_components.lisa_scheduler"
 
-# Scraper configuration
-CONF_SCRAPER_SOURCES = "scraper_sources"
-CONF_DATE_FORMAT = "date_format"
-CONF_TIME_FORMAT = "time_format"
+# Schedule timezone returned by the API
 CONF_TIMEZONE = "timezone"
-
-# Scraper source configuration keys
-CONF_SOURCE_URL = "url"
-CONF_SOURCE_TYPE = "type"
-CONF_SOURCE_METHOD = "method"
-CONF_SOURCE_SELECTORS = "selectors"
-CONF_SOURCE_API_ENDPOINT = "api_endpoint"
-CONF_SOURCE_API_HEADERS = "api_headers"
-CONF_SOURCE_API_PARAMS = "api_params"
-
-# Scraper methods
-SCRAPER_METHOD_HTML = "html"
-SCRAPER_METHOD_API = "api"
-SCRAPER_METHOD_ICAL = "ical"
-
-# Default scraper settings
-DEFAULT_DATE_FORMAT = "%d-%m-%Y"
-DEFAULT_TIME_FORMAT = "%H:%M"
 DEFAULT_TIMEZONE = "Europe/Amsterdam"

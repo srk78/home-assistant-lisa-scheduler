@@ -77,7 +77,7 @@ No actual HA events are dispatched.
 ### Schedule Parsing
 
 - [ ] Events are found and count is non-zero
-- [ ] Dates and times match the source website
+- [ ] Dates and times match the schedule API
 - [ ] `sensor.lisa_next_event_start` shows a plausible upcoming time
 - [ ] `sensor.lisa_current_event` updates correctly
 
@@ -173,7 +173,7 @@ ERROR  Invalid configuration
 
 Possible causes:
 - Dry run mode is not actually enabled — verify in the integration options
-- No events were found — check `sensor.lisa_events_today` and the scraper logs
+- No events were found — check `sensor.lisa_events_today` and the API health attributes
 - The transition time hasn't been reached yet — use `set_override` to simulate
 
 ### Wrong Window Timing
@@ -181,7 +181,7 @@ Possible causes:
 Possible causes:
 - Incorrect `pre_event_minutes` value
 - Timezone mismatch
-- Date/time format on the source website
+- API timezone and timestamp offsets
 
 Check [[../troubleshooting/debugging|Debug Logging]] and [[../troubleshooting/no-events-found|No Events Found]].
 

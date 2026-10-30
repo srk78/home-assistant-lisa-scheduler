@@ -1,109 +1,49 @@
 ---
 title: Advanced Settings
-tags: [configuration, settings, advanced]
+tags: [configuration, advanced]
 ---
 
 # Advanced Settings
 
-Advanced configuration options for the LISA Scheduler integration.
+## External Events
 
-## Timezone
+The default club-only view is designed for on-site operator workflows. Turn on **Include events at external venues** when away fixtures or other locations must participate in windows and automations.
 
-**Description**: The timezone used when parsing dates and times from the schedule source.
+This option changes the API query and reloads the integration. API records still carry `at_club_venue` and `venue_id` in entity attributes and event payloads.
 
-**YAML Key**: `timezone`
-**Type**: String
-**Default**: `"Europe/Amsterdam"`
+## API Timezone
 
-```yaml
-timezone: "Europe/Amsterdam"
-```
+The timezone is not entered manually. Setup reads `meta.timezone` from the API and stores it with the config entry.
 
-Common values:
-- Netherlands: `Europe/Amsterdam`
-- Belgium: `Europe/Brussels`
-- UK: `Europe/London`
-- US East: `America/New_York`
+API timestamps must include an offset. They are converted to naive schedule-local values for the existing scheduling engine, then returned as timezone-aware values by Home Assistant timestamp sensors. If the API timezone later changes, the integration preserves the previous schedule and requires reconfiguration instead of silently moving events.
 
-All datetimes are normalised to naive local time in the configured timezone throughout the integration.
+## Freshness Policy
 
-## Date and Time Formats
+A schedule is marked stale when:
 
-Use these settings to help the scraper parse dates and times from the schedule page when automatic detection does not produce correct results.
+- the latest Home Assistant API request failed;
+- no local request has succeeded, or the latest success is older than twice the polling interval;
+- the API reports `stale` or `partial`; or
+- the API has no successful upstream synchronization timestamp.
 
-**Date Format**:
-```yaml
-date_format: "%d-%m-%Y"  # e.g. 31-12-2024
-```
+Stale and partial snapshots remain usable. Malformed or truncated snapshots do not replace cached data.
 
-**Time Format**:
-```yaml
-time_format: "%H:%M"  # e.g. 14:30
-```
+## ETags
 
-Format strings follow Python `strftime` conventions. See [Scraper Configuration](../scraper/configuring-scraper) for details on when these are needed.
+The API client stores the latest ETag and sends `If-None-Match` on later requests. A `304 Not Modified` response is a successful refresh: local errors clear, cached events remain, and freshness is recalculated.
 
-## Scraper Sources
+## Dry Run And Manual Override
 
-For advanced users who need to pull schedules from multiple URLs or non-standard page structures, `scraper_sources` lets you define a list of sources in YAML. Each source specifies a URL, the fetch method (`html`, `api`, or `ical`), and optional CSS selectors or HTTP parameters.
+Dry run affects HA event firing only; API polling and entities continue normally. Manual override creates a temporary active window and does not modify the API snapshot.
 
-```yaml
-lisa_scheduler:
-  scraper_sources:
-    - url: "https://www.yourclub.nl/training"
-      type: training
-      method: html
-      selectors:
-        container: "div.event-item"
-        date: "span.date"
-        time: "span.time"
-        title: "span.title"
+## Diagnostics
 
-    - url: "https://www.yourclub.nl/matches"
-      type: match
-      method: html
-      selectors:
-        container: "div.match-item"
-        date: "span.match-date"
-        time: "span.match-time"
-```
+Use the attributes on **Last Schedule Update** to distinguish:
 
-When `scraper_sources` is present, it takes precedence over `schedule_url`. This setting is only available via YAML. See [Scraper Configuration](../scraper/configuring-scraper) for a full reference.
+- `last_refresh_failed` and `last_error`: Home Assistant could not read or validate the API;
+- `upstream_error_category`: the API could not synchronize one or more upstream sources;
+- `upstream_stale` and `upstream_partial`: API snapshot health;
+- `upstream_sources`: per-source status;
+- `upstream_record_counts` and `upstream_unschedulable_counts`: API inventory.
 
-## Pre-event Triggers (list syntax in YAML)
-
-In YAML you can also provide `pre_event_triggers` as a list instead of a comma-separated string:
-
-```yaml
-lisa_scheduler:
-  pre_event_triggers: "120, 60, 15"
-```
-
-Both forms are equivalent. See [Basic Settings — Pre-event Triggers](basic-settings#pre-event-triggers) for a full explanation of how trigger times work.
-
-## Complete Advanced Example
-
-```yaml
-lisa_scheduler:
-  schedule_url: "https://www.yourclub.nl/schedule"
-  logo_url: "https://www.yourclub.nl/logo.png"
-  pre_event_triggers: "120, 30"
-
-  scan_interval: 21600
-  timezone: "Europe/Amsterdam"
-  date_format: "%d-%m-%Y"
-  time_format: "%H:%M"
-  enabled: true
-  dry_run: false
-```
-
-## See Also
-
-- [Basic Settings](basic-settings)
-- [Scraper Configuration](../scraper/configuring-scraper)
-- [Configuration Examples](examples)
-
----
-
-**Difficulty**: Intermediate
-**Prerequisites**: Basic settings configured
+See [[api-connection|API Connection]] and [[../usage/dashboard-library/diagnostics-panel|Diagnostics Panel]].

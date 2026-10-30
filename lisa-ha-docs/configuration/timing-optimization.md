@@ -113,7 +113,7 @@ Set `dry_run: true` and check the Home Assistant logs after a schedule fetch. Th
 
 ```yaml
 lisa_scheduler:
-  schedule_url: "https://www.yourclub.nl/schedule"
+  api_url: "https://schedule.example.com"
   pre_event_triggers: "120, 60, 15"
   dry_run: true
   scan_interval: 600  # poll every 10 min during testing
@@ -175,10 +175,10 @@ hours_to_show: 24
 
 ## See Also
 
-- [Basic Settings](basic-settings)
-- [Advanced Settings](advanced-settings)
-- [Configuration Examples](examples)
-- [Available Sensors](../usage/sensors)
+- [Basic Settings](basic-settings.md)
+- [Advanced Settings](advanced-settings.md)
+- [Configuration Examples](examples.md)
+- [Available Sensors](../usage/sensors.md)
 
 ---
 

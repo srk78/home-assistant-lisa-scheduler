@@ -105,7 +105,7 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 ### sensor.lisa_last_schedule_update
 
-**Description**: Timestamp of the most recent successful schedule fetch
+**Description**: Timestamp of the API's most recent successful upstream synchronization
 
 **State**: DateTime (timestamp)
 **Device Class**: `timestamp`
@@ -113,15 +113,26 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 **Attributes**:
 - `last_error`: Error message from the last failed update, if any
 - `last_refresh_attempt`: Timestamp of the latest refresh attempt
+- `last_api_fetch_success`: Timestamp of the latest valid API response or `304`
 - `last_refresh_failed`: Whether the latest refresh attempt failed
 - `schedule_stale`: Whether the cached schedule should be considered stale
 - `timezone`: Timezone used for schedule-local timestamps
-- `scraped_event_count`: Number of events parsed from the last successful fetch
+- `api_url`: Normalized `/v1/events` endpoint
+- `include_external_events`: Whether events outside club venues are included
+- `api_generated_at`: When the API generated its response
+- `upstream_last_attempt`: Latest upstream synchronization attempt
+- `upstream_error_category`: Sanitized upstream error, if any
+- `upstream_stale`: Whether the API reports stale source data
+- `upstream_partial`: Whether exactly one upstream source is healthy
+- `upstream_sources`: Per-source health details
+- `upstream_record_counts`: API source record counts
+- `upstream_unschedulable_counts`: Records without usable event times
+- `api_event_count`: Number of events loaded from the API
 - `event_window_count`: Number of event windows built from the last successful fetch
 
 **Use cases**:
 - Alert when the schedule has not refreshed in too long
-- Debug scraper issues
+- Diagnose API and upstream freshness issues
 
 ---
 
@@ -213,7 +224,7 @@ automation:
 
 ### Time Until Next Window
 
-```yaml
+```jinja
 {% set start = as_timestamp(states('sensor.lisa_next_window_start')) %}
 {% set diff = (start - as_timestamp(now())) / 3600 %}
 Next window opens in {{ diff | round(1) }} hours
@@ -221,13 +232,15 @@ Next window opens in {{ diff | round(1) }} hours
 
 ### Current Event Name
 
-```yaml
+```jinja
 {{ states('sensor.lisa_current_event') }}
 ```
 
 ---
 
 ## Dashboard Examples
+
+For complete operator panels, mobile views, kiosk displays, and enhanced Mushroom/Bubble/button-card examples, use [[dashboard-cards|Dashboard Cards]].
 
 ### Simple Entities Card
 
@@ -267,6 +280,7 @@ No extra dashboard configuration is needed — the picture is set at the entity 
 
 - [[automations|Automation Examples]]
 - [[services|Available Services]]
+- [[dashboard-cards|Dashboard Cards]]
 
 ---
 

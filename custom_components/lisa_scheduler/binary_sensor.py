@@ -3,10 +3,7 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntity,
-)
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
@@ -33,7 +30,9 @@ async def async_setup_entry(
     ])
 
 
-class LISABinarySensorBase(CoordinatorEntity, BinarySensorEntity):
+class LISABinarySensorBase(
+    CoordinatorEntity[LISASchedulerCoordinator], BinarySensorEntity
+):
     def __init__(
         self,
         coordinator: LISASchedulerCoordinator,

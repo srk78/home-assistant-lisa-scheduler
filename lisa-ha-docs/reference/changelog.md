@@ -7,6 +7,26 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [0.5.0] - Unreleased
+
+### Breaking Changes
+
+- `lisa-schedule-api` is now the only schedule source. Direct HTML, configurable, and iCal source handling have been removed.
+- `schedule_url` has been replaced by `api_url`; experimental v1 config entries are migrated to the normalized `/v1/events` URL.
+
+### Added
+
+- Club-venue filtering by default, with an option to include external events.
+- ETag support, strict API contract validation, and API provenance in event payloads.
+- Upstream stale, partial, error, record-count, and per-source health diagnostics.
+- In-place API URL reconfiguration and a 10-minute default polling interval.
+
+### Changed
+
+- Cached schedules survive transient API failures and usable stale or partial snapshots remain available.
+- The refresh service rereads the API snapshot and does not trigger upstream synchronization.
+- Timestamp conversion uses the API-declared timezone.
+
 ## [0.4.0] - Unreleased
 
 ### Breaking Changes
@@ -129,6 +149,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.5.0 | Unreleased | Sole schedule API source, health metadata, cached failure handling |
 | 0.4.0 | Unreleased | Rename to LISA Scheduler, `pre_event_triggers`, `logo_url`, device triggers |
 | 0.3.0 | Unreleased | General-purpose refactor, `event_started`/`event_ended` events, Event Active sensor |
 | 0.2.0 | 2024-11-26 | Configurable scraper, documentation overhaul |

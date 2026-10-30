@@ -6,7 +6,7 @@ from custom_components.lisa_scheduler.scheduler import (
     EventWindow,
     EventScheduler,
 )
-from custom_components.lisa_scheduler.scraper import Event
+from custom_components.lisa_scheduler.models import Event
 from custom_components.lisa_scheduler.const import EVENT_TYPE_TRAINING
 
 
