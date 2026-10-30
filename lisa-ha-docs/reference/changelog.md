@@ -7,6 +7,14 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [0.6.0] - 2026-10-31
+
+### Added
+
+- **LISA Schedule** sidebar panel listing all upcoming matches and training sessions, with All/Matches/Trainings filter tabs.
+- `lisa_scheduler/upcoming_events` websocket command backing the panel.
+- [[../usage/dashboard-library/upcoming-events|Upcoming Events]] dashboard card snippet.
+
 ## [0.5.0] - Unreleased
 
 ### Breaking Changes
@@ -149,6 +157,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.6.0 | 2026-10-31 | Upcoming events sidebar panel |
 | 0.5.0 | Unreleased | Sole schedule API source, health metadata, cached failure handling |
 | 0.4.0 | Unreleased | Rename to LISA Scheduler, `pre_event_triggers`, `logo_url`, device triggers |
 | 0.3.0 | Unreleased | General-purpose refactor, `event_started`/`event_ended` events, Event Active sensor |
