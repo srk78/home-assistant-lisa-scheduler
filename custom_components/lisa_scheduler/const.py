@@ -6,6 +6,7 @@ DOMAIN = "lisa_scheduler"
 CONF_API_URL = "api_url"
 CONF_API_TIMEZONE = "api_timezone"
 CONF_INCLUDE_EXTERNAL_EVENTS = "include_external_events"
+CONF_INCLUDE_CLUB_EVENTS = "include_club_events"
 LEGACY_CONF_SCHEDULE_URL = "schedule_url"
 CONF_LOGO_URL = "logo_url"
 CONF_PRE_EVENT_TRIGGERS = "pre_event_triggers"
@@ -20,6 +21,7 @@ CONF_DRY_RUN = "dry_run"
 DEFAULT_PRE_EVENT_TRIGGERS = [120]  # 2 hours
 DEFAULT_SCAN_INTERVAL = 600  # 10 minutes in seconds
 DEFAULT_INCLUDE_EXTERNAL_EVENTS = False
+DEFAULT_INCLUDE_CLUB_EVENTS = True
 DEFAULT_ENABLED = True
 DEFAULT_DRY_RUN = False
 

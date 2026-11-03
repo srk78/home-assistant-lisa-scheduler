@@ -19,6 +19,7 @@ from .const import (
     CONF_API_URL,
     CONF_DRY_RUN,
     CONF_ENABLED,
+    CONF_INCLUDE_CLUB_EVENTS,
     CONF_INCLUDE_EXTERNAL_EVENTS,
     CONF_LOGO_URL,
     CONF_PRE_EVENT_TRIGGERS,
@@ -28,6 +29,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_DRY_RUN,
     DEFAULT_ENABLED,
+    DEFAULT_INCLUDE_CLUB_EVENTS,
     DEFAULT_INCLUDE_EXTERNAL_EVENTS,
     DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
@@ -59,6 +61,9 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(
                     CONF_INCLUDE_EXTERNAL_EVENTS,
                     default=DEFAULT_INCLUDE_EXTERNAL_EVENTS,
+                ): cv.boolean,
+                vol.Optional(
+                    CONF_INCLUDE_CLUB_EVENTS, default=DEFAULT_INCLUDE_CLUB_EVENTS
                 ): cv.boolean,
                 vol.Optional(CONF_LOGO_URL, default=""): cv.string,
                 vol.Optional(
@@ -166,6 +171,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.data.get(
                 CONF_INCLUDE_EXTERNAL_EVENTS, DEFAULT_INCLUDE_EXTERNAL_EVENTS
             ),
+        ),
+        include_club_events=entry.options.get(
+            CONF_INCLUDE_CLUB_EVENTS,
+            entry.data.get(CONF_INCLUDE_CLUB_EVENTS, DEFAULT_INCLUDE_CLUB_EVENTS),
         ),
         session=async_get_clientsession(hass),
     )

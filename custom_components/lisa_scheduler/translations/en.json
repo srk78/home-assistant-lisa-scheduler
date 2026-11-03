@@ -7,6 +7,7 @@
         "data": {
           "api_url": "Schedule API URL",
           "include_external_events": "Include events at external venues",
+          "include_club_events": "Schedule club events (clinics, dinners, tournaments)",
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",
@@ -48,6 +49,7 @@
         "title": "LISA Scheduler Options",
         "data": {
           "include_external_events": "Include events at external venues",
+          "include_club_events": "Schedule club events (clinics, dinners, tournaments)",
           "logo_url": "Club logo URL (optional)",
           "pre_event_triggers": "Pre-event trigger times in minutes (comma-separated, e.g. 120, 30)",
           "pre_first_event_triggers": "Minutes before first event of day (comma-separated, optional)",

@@ -25,6 +25,13 @@ The URL is validated during setup. It must use HTTP or HTTPS, must not include e
 
 When disabled, the integration requests `atClubVenue=true`. Enable it to include external and away events as well.
 
+## Club Events
+
+**YAML key:** `include_club_events`
+**Default:** `true`
+
+Club events (clinics, team dinners, tournaments) are scheduled like matches and trainings. Set this to `false` to keep them out of scheduling: they open no windows and fire no bus events, but still appear in the sidebar panel. Also available in the integration options.
+
 ## Pre-Event Triggers
 
 **YAML key:** `pre_event_triggers`

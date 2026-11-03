@@ -14,6 +14,7 @@ from custom_components.lisa_scheduler.api_client import (
 from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
 from custom_components.lisa_scheduler.models import Event
 from custom_components.lisa_scheduler.const import (
+    EVENT_TYPE_CLUB_EVENT,
     EVENT_TYPE_TRAINING,
     EVENT_FIRST_EVENT_STARTED,
     EVENT_LAST_EVENT_ENDED,
@@ -506,3 +507,51 @@ async def test_day_boundary_events_dry_run(mock_hass):
     coordinator._fire_day_boundary_events(t)
 
     mock_hass.bus.async_fire.assert_not_called()
+
+
+def _training_and_club_event(coordinator):
+    now = coordinator._schedule_now()
+    training = Event(
+        EVENT_TYPE_TRAINING,
+        start_time=now + timedelta(hours=5),
+        end_time=now + timedelta(hours=6),
+        title="Training",
+    )
+    club_event = Event(
+        EVENT_TYPE_CLUB_EVENT,
+        start_time=now + timedelta(days=1, hours=5),
+        end_time=now + timedelta(days=1, hours=6),
+        title="Clinic",
+    )
+    return training, club_event
+
+
+@pytest.mark.asyncio
+async def test_club_events_open_windows_by_default(mock_hass):
+    coordinator = _make_coordinator(mock_hass)
+    training, club_event = _training_and_club_event(coordinator)
+    coordinator.api_client.async_fetch = AsyncMock(
+        return_value=ScheduleFetchResult([training, club_event], _api_metadata())
+    )
+
+    await coordinator._refresh_schedule()
+
+    assert len(coordinator.event_windows) == 2
+
+
+@pytest.mark.asyncio
+async def test_club_events_can_be_excluded_from_scheduling(mock_hass):
+    coordinator = _make_coordinator(mock_hass, include_club_events=False)
+    training, club_event = _training_and_club_event(coordinator)
+    coordinator.api_client.async_fetch = AsyncMock(
+        return_value=ScheduleFetchResult([training, club_event], _api_metadata())
+    )
+
+    await coordinator._refresh_schedule()
+
+    # Still listed (panel, sensors) but not scheduled.
+    assert coordinator.events == [training, club_event]
+    assert [w.events for w in coordinator.event_windows] == [[training]]
+
+    coordinator.update_settings(pre_event_triggers=[60])
+    assert [w.events for w in coordinator.event_windows] == [[training]]

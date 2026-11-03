@@ -24,6 +24,7 @@ from .const import (
     CONF_API_URL,
     CONF_DRY_RUN,
     CONF_ENABLED,
+    CONF_INCLUDE_CLUB_EVENTS,
     CONF_INCLUDE_EXTERNAL_EVENTS,
     CONF_LOGO_URL,
     CONF_POST_LAST_EVENT_TRIGGERS,
@@ -33,6 +34,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_DRY_RUN,
     DEFAULT_ENABLED,
+    DEFAULT_INCLUDE_CLUB_EVENTS,
     DEFAULT_INCLUDE_EXTERNAL_EVENTS,
     DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
@@ -118,6 +120,12 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
                 CONF_INCLUDE_EXTERNAL_EVENTS,
                 default=defaults.get(
                     CONF_INCLUDE_EXTERNAL_EVENTS, DEFAULT_INCLUDE_EXTERNAL_EVENTS
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_INCLUDE_CLUB_EVENTS,
+                default=defaults.get(
+                    CONF_INCLUDE_CLUB_EVENTS, DEFAULT_INCLUDE_CLUB_EVENTS
                 ),
             ): bool,
             vol.Optional(CONF_LOGO_URL, default=defaults.get(CONF_LOGO_URL, "")): str,
@@ -305,6 +313,12 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
                     default=current(
                         CONF_INCLUDE_EXTERNAL_EVENTS,
                         DEFAULT_INCLUDE_EXTERNAL_EVENTS,
+                    ),
+                ): bool,
+                vol.Optional(
+                    CONF_INCLUDE_CLUB_EVENTS,
+                    default=current(
+                        CONF_INCLUDE_CLUB_EVENTS, DEFAULT_INCLUDE_CLUB_EVENTS
                     ),
                 ): bool,
                 vol.Optional(CONF_LOGO_URL, default=current(CONF_LOGO_URL, "")): str,

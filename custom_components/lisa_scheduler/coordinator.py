@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .api_client import LisaScheduleApiClient, ScheduleApiMetadata
 from .const import (
+    EVENT_TYPE_CLUB_EVENT,
     DEFAULT_TIMEZONE,
     DOMAIN,
     EVENT_WINDOW_STARTED,
@@ -54,6 +55,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         post_last_event_triggers: list[int] | None = None,
         timezone: str = DEFAULT_TIMEZONE,
         include_external_events: bool = False,
+        include_club_events: bool = True,
         session: aiohttp.ClientSession | None = None,
     ):
         super().__init__(
@@ -68,6 +70,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.enabled = enabled
         self.dry_run = dry_run
         self.include_external_events = include_external_events
+        self.include_club_events = include_club_events
         self.timezone_name = timezone
         try:
             self.schedule_timezone = ZoneInfo(timezone)
@@ -205,6 +208,12 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error updating coordinator: %s", err, exc_info=True)
             raise UpdateFailed(f"Error communicating with schedule: {err}")
 
+    def _schedulable_events(self, events: list[Event]) -> list[Event]:
+        """Return the events that open windows; club events can be left out."""
+        if self.include_club_events:
+            return events
+        return [e for e in events if e.event_type != EVENT_TYPE_CLUB_EVENT]
+
     def _schedule_now(self) -> datetime:
         """Return the current time as a naive datetime in the schedule timezone."""
         return datetime.now(self.schedule_timezone).replace(tzinfo=None)
@@ -246,7 +255,9 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Refreshing schedule from API")
             result = await self.api_client.async_fetch(days_ahead=14)
             new_events = result.events
-            new_windows = self.scheduler.calculate_event_windows(new_events, now=now)
+            new_windows = self.scheduler.calculate_event_windows(
+                self._schedulable_events(new_events), now=now
+            )
 
             self.events = new_events
             self.event_windows = new_windows
@@ -506,7 +517,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         if pre_event_triggers is not None:
             self.scheduler.update_settings(pre_event_triggers)
             self.event_windows = self.scheduler.calculate_event_windows(
-                self.events, now=self._schedule_now()
+                self._schedulable_events(self.events), now=self._schedule_now()
             )
 
         if scan_interval is not None:

@@ -7,6 +7,12 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Added
+
+- `include_club_events` option (default `true`). Set it to `false` to keep club events out of scheduling: they open no windows and fire no bus events, but are still listed in the sidebar panel.
+
 ## [0.7.0] - 2026-11-03
 
 ### Added
