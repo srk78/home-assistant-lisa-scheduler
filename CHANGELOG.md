@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Club events from the schedule API (`type: "event"`: clinics, team dinners, tournaments) are now scheduled like matches and trainings, and listed in the sidebar panel under a new **Events** filter. The `event_types` option of the `lisa_scheduler/upcoming_events` websocket command accepts `event`. Club events open event windows and fire the same bus events as matches and trainings; the `event_type` in the payload is `event`, so automations can tell them apart.
+
+### Fixed
+
+- A schedule API snapshot containing club events was rejected as a whole with `Unsupported event type: event`.
+
 ## [0.6.0] - 2026-10-31
 
 ### Added

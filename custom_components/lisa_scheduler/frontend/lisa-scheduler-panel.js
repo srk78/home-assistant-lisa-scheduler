@@ -1,12 +1,13 @@
-/* LISA Scheduler sidebar panel: upcoming matches and training sessions. */
+/* LISA Scheduler sidebar panel: upcoming matches, training sessions and club events. */
 
 const REFRESH_MS = 60000;
 const FILTERS = [
   { id: "all", label: "All" },
   { id: "match", label: "Matches" },
   { id: "training", label: "Trainings" },
+  { id: "event", label: "Events" },
 ];
-const TYPE_LABELS = { match: "Match", training: "Training" };
+const TYPE_LABELS = { match: "Match", training: "Training", event: "Event" };
 
 const escapeHtml = (value) =>
   String(value ?? "").replace(
@@ -184,6 +185,7 @@ class LisaSchedulerPanel extends HTMLElement {
         }
         .event.match { border-left-color: var(--accent-color, #ff9800); }
         .event.training { border-left-color: var(--primary-color, #03a9f4); }
+        .event.event { border-left-color: var(--success-color, #43a047); }
         .time { min-width: 56px; font-weight: 500; font-variant-numeric: tabular-nums; }
         .time span { display: block; font-weight: 400; color: var(--secondary-text-color); }
         .details { flex: 1; min-width: 0; }
@@ -201,7 +203,7 @@ class LisaSchedulerPanel extends HTMLElement {
       </style>
       <header>
         <button class="menu" aria-label="Menu">☰</button>
-        <h1>Upcoming games &amp; training</h1>
+        <h1>Upcoming games, training &amp; events</h1>
         <div class="tabs">${tabs}</div>
       </header>
       <main>${this._renderBody()}</main>`;

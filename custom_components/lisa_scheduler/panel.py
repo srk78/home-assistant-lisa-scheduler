@@ -1,4 +1,4 @@
-"""Sidebar panel listing upcoming matches and training sessions."""
+"""Sidebar panel listing upcoming matches, training sessions and club events."""
 
 from __future__ import annotations
 
@@ -12,7 +12,12 @@ from homeassistant.components import frontend, panel_custom, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DOMAIN, EVENT_TYPE_MATCH, EVENT_TYPE_TRAINING
+from .const import (
+    DOMAIN,
+    EVENT_TYPE_CLUB_EVENT,
+    EVENT_TYPE_MATCH,
+    EVENT_TYPE_TRAINING,
+)
 
 PANEL_URL_PATH = "lisa-scheduler"
 PANEL_TITLE = "LISA Schedule"
@@ -49,7 +54,9 @@ def upcoming_events(
 @websocket_api.websocket_command(
     {
         vol.Required("type"): WS_TYPE_UPCOMING_EVENTS,
-        vol.Optional("event_types"): [vol.In([EVENT_TYPE_MATCH, EVENT_TYPE_TRAINING])],
+        vol.Optional("event_types"): [
+            vol.In([EVENT_TYPE_MATCH, EVENT_TYPE_TRAINING, EVENT_TYPE_CLUB_EVENT])
+        ],
     }
 )
 def ws_upcoming_events(

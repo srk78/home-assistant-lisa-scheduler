@@ -16,7 +16,11 @@ from custom_components.lisa_scheduler.api_client import (
     ScheduleApiTimezoneError,
     normalize_api_url,
 )
-from custom_components.lisa_scheduler.const import EVENT_TYPE_MATCH
+from custom_components.lisa_scheduler.const import (
+    EVENT_TYPE_CLUB_EVENT,
+    EVENT_TYPE_MATCH,
+    EVENT_TYPE_TRAINING,
+)
 
 
 def _metadata(**overrides):
@@ -151,6 +155,47 @@ async def test_fetch_maps_event_and_sends_club_filter():
 
 
 @pytest.mark.asyncio
+async def test_fetch_maps_every_api_event_type():
+    client, session = _client()
+    session.get.return_value = _Response(
+        payload=_payload(
+            [
+                _event(id="event_1", type="game"),
+                _event(
+                    id="event_2",
+                    type="training",
+                    startsAt="2026-10-30T11:00:00Z",
+                    endsAt="2026-10-30T12:00:00Z",
+                ),
+                _event(
+                    id="event_3",
+                    type="event",
+                    title="Eten op de club",
+                    location="Sportpark Duintjesveld",
+                    startsAt="2026-10-30T15:00:00Z",
+                    endsAt="2026-10-30T19:00:00Z",
+                    endTimeEstimated=False,
+                    url="https://club.example/event-detail/abc",
+                    description="Samen eten.",
+                ),
+            ]
+        )
+    )
+
+    result = await client.async_fetch()
+
+    assert [event.event_type for event in result.events] == [
+        EVENT_TYPE_MATCH,
+        EVENT_TYPE_TRAINING,
+        EVENT_TYPE_CLUB_EVENT,
+    ]
+    club_event = result.events[2]
+    assert club_event.title == "Eten op de club"
+    assert club_event.location == "Sportpark Duintjesveld"
+    assert club_event.end_time_estimated is False
+
+
+@pytest.mark.asyncio
 async def test_fetch_can_include_external_events():
     client, session = _client(include_external=True)
     session.get.return_value = _Response(
@@ -202,6 +247,10 @@ async def test_fetch_uses_etag_and_handles_not_modified():
         ),
         (
             _Response(payload=_payload([_event(schedulable=False)])),
+            ScheduleApiResponseError,
+        ),
+        (
+            _Response(payload=_payload([_event(type="tournament")])),
             ScheduleApiResponseError,
         ),
         (

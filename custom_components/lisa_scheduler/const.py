@@ -53,6 +53,7 @@ ATTR_SCHEDULE_SOURCE = "schedule_source"
 # Event types
 EVENT_TYPE_TRAINING = "training"
 EVENT_TYPE_MATCH = "match"
+EVENT_TYPE_CLUB_EVENT = "event"
 EVENT_TYPE_UNKNOWN = "unknown"
 
 # Update intervals

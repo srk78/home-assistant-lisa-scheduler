@@ -11,10 +11,20 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import aiohttp
 
-from .const import DEFAULT_TIMEZONE, EVENT_TYPE_MATCH, EVENT_TYPE_TRAINING
+from .const import (
+    DEFAULT_TIMEZONE,
+    EVENT_TYPE_CLUB_EVENT,
+    EVENT_TYPE_MATCH,
+    EVENT_TYPE_TRAINING,
+)
 from .models import Event
 
 API_EVENTS_PATH = "/v1/events"
+API_EVENT_TYPES = {
+    "game": EVENT_TYPE_MATCH,
+    "training": EVENT_TYPE_TRAINING,
+    "event": EVENT_TYPE_CLUB_EVENT,
+}
 REQUEST_TIMEOUT_SECONDS = 15
 
 
@@ -263,7 +273,7 @@ class LisaScheduleApiClient:
             raise ScheduleApiResponseError(f"API event is missing: {missing}")
 
         event_type = value["type"]
-        if event_type not in {"game", "training"}:
+        if event_type not in API_EVENT_TYPES:
             raise ScheduleApiResponseError(f"Unsupported event type: {event_type}")
         if _require_bool(value["cancelled"], "event.cancelled"):
             raise ScheduleApiResponseError("API returned a cancelled event")
@@ -285,9 +295,7 @@ class LisaScheduleApiClient:
             raise ScheduleApiResponseError("Event end must be after its start")
 
         return Event(
-            event_type=(
-                EVENT_TYPE_MATCH if event_type == "game" else EVENT_TYPE_TRAINING
-            ),
+            event_type=API_EVENT_TYPES[event_type],
             start_time=start.astimezone(timezone).replace(tzinfo=None),
             end_time=end.astimezone(timezone).replace(tzinfo=None),
             title=_require_string(value["title"], "event.title"),

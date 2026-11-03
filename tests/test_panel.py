@@ -23,6 +23,7 @@ EVENTS = [
     _event("match", "2026-03-11T10:00:00", "2026-03-11T12:00:00"),
     _event("match", "2026-03-09T10:00:00", "2026-03-09T12:00:00"),
     _event("training", "2026-03-10T11:00:00", "2026-03-10T13:00:00"),
+    _event("event", "2026-03-13T16:00:00", "2026-03-13T20:00:00"),
 ]
 
 
@@ -33,7 +34,14 @@ def test_upcoming_events_drops_ended_and_sorts_by_start():
         "2026-03-10T11:00:00",
         "2026-03-11T10:00:00",
         "2026-03-12T18:00:00",
+        "2026-03-13T16:00:00",
     ]
+
+
+def test_upcoming_events_filters_club_events():
+    result = upcoming_events(EVENTS, NOW, {"event"})
+
+    assert [e["event_type"] for e in result] == ["event"]
 
 
 def test_upcoming_events_filters_by_type():
@@ -73,4 +81,5 @@ def test_ws_upcoming_events_merges_entries_and_skips_unloaded():
         "2026-03-10T11:00:00",
         "2026-03-11T10:00:00",
         "2026-03-12T18:00:00",
+        "2026-03-13T16:00:00",
     ]
