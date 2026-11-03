@@ -117,7 +117,7 @@ Upgrading from 0.1.0 requires manual steps:
 ### Breaking Changes
 Upgrading from 0.2.0 requires updating any automations that listen to the old `zhc_scheduler_*` event names.
 
-## [0.7.0] - 2026-11-03
+## [Unreleased]
 
 ### Planned Features
 - `async_migrate_entry` for seamless upgrade from 0.1.0 (auto-converts `pre_heat_hours` → `pre_event_minutes`, removes obsolete keys, renames stored config entry title to "LISA Scheduler")
