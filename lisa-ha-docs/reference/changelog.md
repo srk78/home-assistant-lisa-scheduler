@@ -7,7 +7,7 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
-## [Unreleased]
+## [0.7.1] - 2026-11-03
 
 ### Added
 
@@ -173,6 +173,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.7.1 | 2026-11-03 | `include_club_events` option |
 | 0.7.0 | 2026-11-03 | Club events from the schedule API |
 | 0.6.0 | 2026-10-31 | Upcoming events sidebar panel |
 | 0.5.0 | Unreleased | Sole schedule API source, health metadata, cached failure handling |
