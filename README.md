@@ -31,6 +31,8 @@ See the [UI installation guide](lisa-ha-docs/quick-start/installation-ui.md) and
 lisa_scheduler:
   api_url: "https://schedule.example.com"
   include_external_events: false
+  next_event_index: 0  # 0 = first upcoming event, 1 = second, ...
+  panel_events: false  # optional extra sidebar panels: panel_matches, panel_trainings, panel_events
   include_club_events: true  # false: club events never open windows or fire events
   pre_event_triggers: [120, 30]
   scan_interval: 600

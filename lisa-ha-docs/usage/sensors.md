@@ -69,11 +69,11 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 ### sensor.lisa_next_event
 
-**Description**: The next event that has not started yet, regardless of whether its pre-event window is already open. Events left out of scheduling (see `include_club_events`) are not reported.
+**Description**: The next event that has not started yet, regardless of whether its pre-event window is already open. Set the `next_event_index` option to show a later one instead (`0` = first upcoming, the default; `1` = second; and so on, up to 50). Events left out of scheduling (see `include_club_events`) are not reported.
 
 **State**: String (event title, or `None`)
 
-**Attributes**: same as `sensor.lisa_current_event`
+**Attributes**: same as `sensor.lisa_current_event`, plus `event_index` (the configured index)
 
 **Use cases**:
 - Show "up next" on a dashboard card

@@ -326,3 +326,19 @@ def test_events_today_counts_every_event_even_when_windows_merge():
     assert summary["events_today"] == 3
     assert summary["events_today_by_type"] == {"training": 2, "match": 1}
     assert [e["title"] for e in summary["events_today_list"]] == ["A", "B", "C"]
+
+
+def test_get_next_event_index_selects_nth_upcoming_event():
+    base = datetime(2026, 11, 4, 10, 0)
+    events = [
+        Event(EVENT_TYPE_TRAINING, base + timedelta(hours=h), base + timedelta(hours=h, minutes=30), title=f"E{h}")
+        for h in (3, 1, 2)
+    ]
+    scheduler = EventScheduler(pre_event_triggers=[10])
+    windows = scheduler.calculate_event_windows(events, now=base)
+
+    assert scheduler.get_next_event(windows, base).title == "E1"
+    assert scheduler.get_next_event(windows, base, index=1).title == "E2"
+    assert scheduler.get_next_event(windows, base, index=2).title == "E3"
+    assert scheduler.get_next_event(windows, base, index=3) is None
+    assert scheduler.get_schedule_summary(windows, base, 1)["next_event"]["title"] == "E2"

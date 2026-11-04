@@ -22,6 +22,10 @@ from .const import (
     CONF_INCLUDE_CLUB_EVENTS,
     CONF_INCLUDE_EXTERNAL_EVENTS,
     CONF_LOGO_URL,
+    CONF_NEXT_EVENT_INDEX,
+    CONF_PANEL_EVENTS,
+    CONF_PANEL_MATCHES,
+    CONF_PANEL_TRAININGS,
     CONF_PRE_EVENT_TRIGGERS,
     CONF_PRE_FIRST_EVENT_TRIGGERS,
     CONF_PRE_LAST_EVENT_END_TRIGGERS,
@@ -31,6 +35,9 @@ from .const import (
     DEFAULT_ENABLED,
     DEFAULT_INCLUDE_CLUB_EVENTS,
     DEFAULT_INCLUDE_EXTERNAL_EVENTS,
+    DEFAULT_NEXT_EVENT_INDEX,
+    MAX_NEXT_EVENT_INDEX,
+    DEFAULT_OPTIONAL_PANEL,
     DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEZONE,
@@ -66,6 +73,18 @@ CONFIG_SCHEMA = vol.Schema(
                     CONF_INCLUDE_CLUB_EVENTS, default=DEFAULT_INCLUDE_CLUB_EVENTS
                 ): cv.boolean,
                 vol.Optional(CONF_LOGO_URL, default=""): cv.string,
+                vol.Optional(
+                    CONF_NEXT_EVENT_INDEX, default=DEFAULT_NEXT_EVENT_INDEX
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_NEXT_EVENT_INDEX)),
+                vol.Optional(
+                    CONF_PANEL_MATCHES, default=DEFAULT_OPTIONAL_PANEL
+                ): cv.boolean,
+                vol.Optional(
+                    CONF_PANEL_TRAININGS, default=DEFAULT_OPTIONAL_PANEL
+                ): cv.boolean,
+                vol.Optional(
+                    CONF_PANEL_EVENTS, default=DEFAULT_OPTIONAL_PANEL
+                ): cv.boolean,
                 vol.Optional(
                     CONF_PRE_EVENT_TRIGGERS, default=DEFAULT_PRE_EVENT_TRIGGERS
                 ): TRIGGER_LIST_SCHEMA,
@@ -176,6 +195,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             CONF_INCLUDE_CLUB_EVENTS,
             entry.data.get(CONF_INCLUDE_CLUB_EVENTS, DEFAULT_INCLUDE_CLUB_EVENTS),
         ),
+        next_event_index=entry.options.get(
+            CONF_NEXT_EVENT_INDEX,
+            entry.data.get(CONF_NEXT_EVENT_INDEX, DEFAULT_NEXT_EVENT_INDEX),
+        ),
         session=async_get_clientsession(hass),
     )
 
@@ -183,7 +206,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    await async_register_panel(hass)
+    await async_register_panel(
+        hass,
+        [
+            key
+            for key in (CONF_PANEL_MATCHES, CONF_PANEL_TRAININGS, CONF_PANEL_EVENTS)
+            if entry.options.get(
+                key, entry.data.get(key, DEFAULT_OPTIONAL_PANEL)
+            )
+        ],
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

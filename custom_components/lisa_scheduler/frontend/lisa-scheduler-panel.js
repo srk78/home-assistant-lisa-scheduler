@@ -34,6 +34,14 @@ class LisaSchedulerPanel extends HTMLElement {
     }
   }
 
+  // Optional panels pass {event_types, title} as panel config; the main panel has none.
+  set panel(panel) {
+    const config = panel?.config || {};
+    this._scope = Array.isArray(config.event_types) && config.event_types.length ? config.event_types : null;
+    this._title = config.title || null;
+    this._render();
+  }
+
   set narrow(value) {
     this._narrow = value;
     this._render();
@@ -54,6 +62,7 @@ class LisaSchedulerPanel extends HTMLElement {
     try {
       const result = await this._hass.connection.sendMessagePromise({
         type: "lisa_scheduler/upcoming_events",
+        ...(this._scope ? { event_types: this._scope } : {}),
       });
       this._events = result.events;
       this._error = null;
@@ -65,7 +74,11 @@ class LisaSchedulerPanel extends HTMLElement {
   }
 
   _visibleEvents() {
-    return this._events.filter((e) => this._filter === "all" || e.event_type === this._filter);
+    return this._events.filter(
+      (e) =>
+        (!this._scope || this._scope.includes(e.event_type)) &&
+        (this._filter === "all" || e.event_type === this._filter)
+    );
   }
 
   _formatDay(iso) {
@@ -123,7 +136,7 @@ class LisaSchedulerPanel extends HTMLElement {
 
   _render() {
     if (!this.shadowRoot) return;
-    const tabs = FILTERS.map(
+    const tabs = (this._scope ? [] : FILTERS).map(
       (f) =>
         `<button class="tab ${f.id === this._filter ? "active" : ""}" data-filter="${f.id}">${f.label}</button>`
     ).join("");
@@ -203,7 +216,7 @@ class LisaSchedulerPanel extends HTMLElement {
       </style>
       <header>
         <button class="menu" aria-label="Menu">☰</button>
-        <h1>Upcoming games, training &amp; events</h1>
+        <h1>${escapeHtml(this._title || "Upcoming games, training & events")}</h1>
         <div class="tabs">${tabs}</div>
       </header>
       <main>${this._renderBody()}</main>`;

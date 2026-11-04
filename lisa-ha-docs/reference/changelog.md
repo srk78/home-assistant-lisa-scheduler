@@ -7,6 +7,13 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Added
+
+- `next_event_index` option (default `0`): which upcoming event the **Next Event** sensor shows. `0` is the first upcoming event, `1` the second. The sensor also exposes `event_index`.
+- Optional sidebar panels for a single type: **LISA Matches** (`panel_matches`), **LISA Trainings** (`panel_trainings`) and **LISA Events** (`panel_events`). All are off by default and can be switched on in the integration options.
+
 ## [0.8.2] - 2026-11-04
 
 ### Fixed

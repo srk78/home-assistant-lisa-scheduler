@@ -27,6 +27,10 @@ from .const import (
     CONF_INCLUDE_CLUB_EVENTS,
     CONF_INCLUDE_EXTERNAL_EVENTS,
     CONF_LOGO_URL,
+    CONF_NEXT_EVENT_INDEX,
+    CONF_PANEL_EVENTS,
+    CONF_PANEL_MATCHES,
+    CONF_PANEL_TRAININGS,
     CONF_POST_LAST_EVENT_TRIGGERS,
     CONF_PRE_EVENT_TRIGGERS,
     CONF_PRE_FIRST_EVENT_TRIGGERS,
@@ -36,6 +40,9 @@ from .const import (
     DEFAULT_ENABLED,
     DEFAULT_INCLUDE_CLUB_EVENTS,
     DEFAULT_INCLUDE_EXTERNAL_EVENTS,
+    DEFAULT_NEXT_EVENT_INDEX,
+    MAX_NEXT_EVENT_INDEX,
+    DEFAULT_OPTIONAL_PANEL,
     DEFAULT_PRE_EVENT_TRIGGERS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -340,6 +347,22 @@ class LISASchedulerOptionsFlow(config_entries.OptionsFlow):
                     CONF_POST_LAST_EVENT_TRIGGERS,
                     default=trigger_string(CONF_POST_LAST_EVENT_TRIGGERS, []),
                 ): str,
+                vol.Optional(
+                    CONF_NEXT_EVENT_INDEX,
+                    default=current(CONF_NEXT_EVENT_INDEX, DEFAULT_NEXT_EVENT_INDEX),
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_NEXT_EVENT_INDEX)),
+                vol.Optional(
+                    CONF_PANEL_MATCHES,
+                    default=current(CONF_PANEL_MATCHES, DEFAULT_OPTIONAL_PANEL),
+                ): bool,
+                vol.Optional(
+                    CONF_PANEL_TRAININGS,
+                    default=current(CONF_PANEL_TRAININGS, DEFAULT_OPTIONAL_PANEL),
+                ): bool,
+                vol.Optional(
+                    CONF_PANEL_EVENTS,
+                    default=current(CONF_PANEL_EVENTS, DEFAULT_OPTIONAL_PANEL),
+                ): bool,
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=current(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),

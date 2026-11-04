@@ -205,7 +205,7 @@ class LISACurrentEventSensor(LISASchedulerSensorBase):
 
 
 class LISANextEventSensor(LISASchedulerSensorBase):
-    """Name of the next event that has not started yet, or None."""
+    """Name of an upcoming event (the first by default, see next_event_index)."""
 
     def __init__(
         self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
@@ -225,7 +225,8 @@ class LISANextEventSensor(LISASchedulerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return _event_attributes(self._event())
+        index = (self.coordinator.data or {}).get("next_event_index", 0)
+        return {"event_index": index, **_event_attributes(self._event())}
 
 
 class LISAEventsTodaySensor(LISASchedulerSensorBase):
