@@ -222,6 +222,19 @@ class EventScheduler:
             if w.window_end > today_start
         )
 
+        events_today = [
+            e
+            for w in windows
+            for e in w.events
+            if e.start_time < today_end and e.end_time > today_start
+        ]
+        events_today.sort(key=lambda e: e.start_time)
+        events_today_by_type: dict[str, int] = {}
+        for e in events_today:
+            events_today_by_type[e.event_type] = (
+                events_today_by_type.get(e.event_type, 0) + 1
+            )
+
         return {
             "is_window_active": current is not None,
             "is_event_active": self.is_event_active(windows, now),
@@ -231,6 +244,9 @@ class EventScheduler:
             "next_event": next_event.to_dict() if next_event else None,
             "next_state_change": next_change.isoformat() if next_change else None,
             "next_state_active": will_be_active,
+            "events_today": len(events_today),
+            "events_today_by_type": events_today_by_type,
+            "events_today_list": [e.to_dict() for e in events_today],
             "windows_today": len(today_windows),
             "total_window_minutes_today": total_window_minutes,
             "total_windows": len(windows),

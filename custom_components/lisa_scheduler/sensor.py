@@ -229,7 +229,7 @@ class LISANextEventSensor(LISASchedulerSensorBase):
 
 
 class LISAEventsTodaySensor(LISASchedulerSensorBase):
-    """Number of event windows today."""
+    """Number of events (matches, trainings and club events) today."""
 
     def __init__(
         self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
@@ -242,7 +242,29 @@ class LISAEventsTodaySensor(LISASchedulerSensorBase):
     def native_value(self) -> int:
         if not self.coordinator.data:
             return 0
-        return self.coordinator.data.get("summary", {}).get("windows_today", 0)
+        return self.coordinator.data.get("summary", {}).get("events_today", 0)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        if not self.coordinator.data:
+            return {}
+        summary = self.coordinator.data.get("summary", {})
+        by_type = summary.get("events_today_by_type", {})
+        return {
+            "matches": by_type.get("match", 0),
+            "trainings": by_type.get("training", 0),
+            "club_events": by_type.get("event", 0),
+            "windows": summary.get("windows_today", 0),
+            "events": [
+                {
+                    "title": e.get("title", ""),
+                    "type": e.get("event_type", ""),
+                    "start_time": e.get("start_time", ""),
+                    "end_time": e.get("end_time", ""),
+                }
+                for e in summary.get("events_today_list", [])
+            ],
+        }
 
 
 class LISAWindowMinutesTodaySensor(LISASchedulerSensorBase):

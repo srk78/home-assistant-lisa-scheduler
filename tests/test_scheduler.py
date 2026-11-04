@@ -307,3 +307,22 @@ def test_current_event_ignores_lead_time_and_next_event_skips_running():
     summary = scheduler.get_schedule_summary(windows, done)
     assert summary["current_event"] is None
     assert summary["next_event"] is None
+
+
+def test_events_today_counts_every_event_even_when_windows_merge():
+    base = datetime(2026, 11, 4, 18, 0)
+    events = [
+        Event(EVENT_TYPE_TRAINING, base, base + timedelta(hours=1), title="A"),
+        Event(EVENT_TYPE_TRAINING, base + timedelta(hours=1), base + timedelta(hours=2), title="B"),
+        Event("match", base + timedelta(hours=2), base + timedelta(hours=3), title="C"),
+        Event("event", base + timedelta(days=1), base + timedelta(days=1, hours=1), title="Tomorrow"),
+    ]
+    scheduler = EventScheduler(pre_event_triggers=[30])
+    windows = scheduler.calculate_event_windows(events, now=base)
+
+    summary = scheduler.get_schedule_summary(windows, base + timedelta(hours=4))
+
+    assert summary["windows_today"] == 1
+    assert summary["events_today"] == 3
+    assert summary["events_today_by_type"] == {"training": 2, "match": 1}
+    assert [e["title"] for e in summary["events_today_list"]] == ["A", "B", "C"]

@@ -82,10 +82,12 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 ### sensor.lisa_events_today
 
-**Description**: Number of event windows scheduled for today
+**Description**: Number of events happening today: matches, trainings and club events added together (events overlapping today count, including ones already finished). Events left out of scheduling by `include_club_events: false` are not counted.
 
 **State**: Integer
 **Unit**: count
+
+**Attributes**: `matches`, `trainings`, `club_events` (the counts per type), `windows` (number of merged scheduling windows today) and `events` (title, type, start and end of each)
 
 ---
 

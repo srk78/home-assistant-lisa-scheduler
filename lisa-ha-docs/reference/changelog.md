@@ -7,6 +7,12 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Fixed
+
+- **Events Today** counted merged scheduling windows, so back-to-back or overlapping events counted as one. It now counts every match, training and club event today, with `matches`, `trainings`, `club_events` and `events` attributes.
+
 ## [0.8.1] - 2026-11-04
 
 ### Changed

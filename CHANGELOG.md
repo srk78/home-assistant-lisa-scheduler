@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Events Today** counted merged scheduling windows, so back-to-back or overlapping events counted as one. It now counts every match, training and club event today, with `matches`, `trainings`, `club_events` and `events` attributes.
+
 ## [0.8.1] - 2026-11-04
 
 ### Changed
