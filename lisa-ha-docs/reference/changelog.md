@@ -7,7 +7,7 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
-## [Unreleased]
+## [0.9.1] - 2026-11-04
 
 ### Removed
 
@@ -213,6 +213,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.9.1 | 2026-11-04 | Removed the optional panels and `next_event_index` |
 | 0.9.0 | 2026-11-04 | Optional matches/trainings/events panels, `next_event_index` |
 | 0.8.2 | 2026-11-04 | Events Today counts every event |
 | 0.8.1 | 2026-11-04 | Dashboard snippets show exact times with minutes |
