@@ -7,7 +7,7 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
-## [Unreleased]
+## [0.8.2] - 2026-11-04
 
 ### Fixed
 
@@ -195,6 +195,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.8.2 | 2026-11-04 | Events Today counts every event |
 | 0.8.1 | 2026-11-04 | Dashboard snippets show exact times with minutes |
 | 0.8.0 | 2026-11-04 | Current Event shows only the running event, Next Event sensor |
 | 0.7.1 | 2026-11-03 | `include_club_events` option |
