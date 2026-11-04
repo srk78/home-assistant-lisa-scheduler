@@ -56,7 +56,6 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         timezone: str = DEFAULT_TIMEZONE,
         include_external_events: bool = False,
         include_club_events: bool = True,
-        next_event_index: int = 0,
         session: aiohttp.ClientSession | None = None,
     ):
         super().__init__(
@@ -72,7 +71,6 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
         self.dry_run = dry_run
         self.include_external_events = include_external_events
         self.include_club_events = include_club_events
-        self.next_event_index = next_event_index
         self.timezone_name = timezone
         try:
             self.schedule_timezone = ZoneInfo(timezone)
@@ -161,9 +159,7 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
             self._fire_pre_event_triggers(now)
             self._fire_day_boundary_events(now)
 
-            summary = self.scheduler.get_schedule_summary(
-                self.event_windows, now, self.next_event_index
-            )
+            summary = self.scheduler.get_schedule_summary(self.event_windows, now)
             schedule_stale = self._is_schedule_stale(now)
 
             return {
@@ -201,7 +197,6 @@ class LISASchedulerCoordinator(DataUpdateCoordinator):
                 "timezone": self.timezone_name,
                 "api_url": self.api_url,
                 "include_external_events": self.include_external_events,
-                "next_event_index": self.next_event_index,
                 "summary": summary,
                 "manual_override": self.manual_override is not None,
             }

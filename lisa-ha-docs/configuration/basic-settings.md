@@ -32,20 +32,6 @@ When disabled, the integration requests `atClubVenue=true`. Enable it to include
 
 Club events (clinics, team dinners, tournaments) are scheduled like matches and trainings. Set this to `false` to keep them out of scheduling: they open no windows and fire no bus events, but still appear in the sidebar panel. Also available in the integration options.
 
-## Next Event Index
-
-**YAML key:** `next_event_index`
-**Default:** `0`
-
-Chooses which upcoming event `sensor.lisa_next_event` reports: `0` is the first upcoming event, `1` the second, and so on (maximum 50). When fewer events are upcoming the sensor shows `None`. To see several upcoming events at once, use the sidebar panel.
-
-## Optional Sidebar Panels
-
-**YAML keys:** `panel_matches`, `panel_trainings`, `panel_events`
-**Default:** `false` for each
-
-Besides the **LISA Schedule** panel (all upcoming matches, trainings and club events), you can add a dedicated sidebar entry per type: **LISA Matches**, **LISA Trainings** and **LISA Events**. Each shows only that type, without filter tabs. Enable them in the integration options; the integration reloads and the entries appear in the sidebar. Hide or reorder them like any sidebar item (profile → sidebar).
-
 ## Pre-Event Triggers
 
 **YAML key:** `pre_event_triggers`

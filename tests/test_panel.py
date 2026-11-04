@@ -5,11 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.lisa_scheduler.const import (
-    CONF_PANEL_EVENTS,
-    CONF_PANEL_MATCHES,
-    DOMAIN,
-)
+from custom_components.lisa_scheduler.const import DOMAIN
 from custom_components.lisa_scheduler import panel as panel_module
 from custom_components.lisa_scheduler.panel import (
     async_register_panel,
@@ -105,55 +101,31 @@ def _panel_hass():
 
 
 @pytest.mark.asyncio
-async def test_only_main_panel_is_registered_by_default():
+async def test_register_panel_is_idempotent():
     hass = _panel_hass()
     with patch.object(
         panel_module.panel_custom, "async_register_panel", new=AsyncMock()
     ) as register, patch.object(panel_module.websocket_api, "async_register_command"):
         await async_register_panel(hass)
+        await async_register_panel(hass)
 
-    assert [c.kwargs["frontend_url_path"] for c in register.call_args_list] == [
-        "lisa-scheduler"
-    ]
-    assert register.call_args.kwargs["config"] is None
-
-
-@pytest.mark.asyncio
-async def test_optional_panels_register_scoped_and_only_once():
-    hass = _panel_hass()
-    with patch.object(
-        panel_module.panel_custom, "async_register_panel", new=AsyncMock()
-    ) as register, patch.object(panel_module.websocket_api, "async_register_command"):
-        await async_register_panel(hass, [CONF_PANEL_EVENTS, CONF_PANEL_MATCHES])
-        await async_register_panel(hass, [CONF_PANEL_EVENTS])
-
-    paths = [c.kwargs["frontend_url_path"] for c in register.call_args_list]
-    assert paths == [
-        "lisa-scheduler",
-        "lisa-scheduler-events",
-        "lisa-scheduler-matches",
-    ]
-    events_call = register.call_args_list[1].kwargs
-    assert events_call["sidebar_title"] == "LISA Events"
-    assert events_call["config"] == {"event_types": ["event"], "title": "LISA Events"}
+    register.assert_awaited_once()
+    assert register.call_args.kwargs["frontend_url_path"] == "lisa-scheduler"
     hass.http.async_register_static_paths.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_unregister_removes_every_registered_panel_and_allows_reregistering():
+async def test_unregister_removes_panel_and_allows_reregistering():
     hass = _panel_hass()
     with patch.object(
         panel_module.panel_custom, "async_register_panel", new=AsyncMock()
     ) as register, patch.object(
         panel_module.websocket_api, "async_register_command"
     ), patch.object(panel_module.frontend, "async_remove_panel") as remove:
-        await async_register_panel(hass, [CONF_PANEL_EVENTS])
+        await async_register_panel(hass)
         async_unregister_panel(hass)
-        assert {c.args[1] for c in remove.call_args_list} == {
-            "lisa-scheduler",
-            "lisa-scheduler-events",
-        }
+        remove.assert_called_once_with(hass, "lisa-scheduler")
         await async_register_panel(hass)
 
-    assert register.await_count == 3
+    assert register.await_count == 2
     hass.http.async_register_static_paths.assert_awaited_once()

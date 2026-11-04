@@ -174,19 +174,13 @@ class EventScheduler:
         return min(running, key=lambda e: e.start_time) if running else None
 
     def get_next_event(
-        self,
-        windows: list[EventWindow],
-        now: datetime | None = None,
-        index: int = 0,
+        self, windows: list[EventWindow], now: datetime | None = None
     ) -> Event | None:
-        """Return an event that has not started yet; index 0 is the earliest."""
+        """Return the earliest scheduled event that has not started yet."""
         if now is None:
             now = datetime.now()
-        upcoming = sorted(
-            (e for w in windows for e in w.events if e.start_time > now),
-            key=lambda e: e.start_time,
-        )
-        return upcoming[index] if 0 <= index < len(upcoming) else None
+        upcoming = [e for w in windows for e in w.events if e.start_time > now]
+        return min(upcoming, key=lambda e: e.start_time) if upcoming else None
 
     def get_next_state_change(
         self, windows: list[EventWindow], now: datetime | None = None
@@ -202,10 +196,7 @@ class EventScheduler:
         return None, False
 
     def get_schedule_summary(
-        self,
-        windows: list[EventWindow],
-        now: datetime | None = None,
-        next_event_index: int = 0,
+        self, windows: list[EventWindow], now: datetime | None = None
     ) -> dict[str, Any]:
         if now is None:
             now = datetime.now()
@@ -214,7 +205,7 @@ class EventScheduler:
         next_w = self.get_next_window(windows, now)
         next_change, will_be_active = self.get_next_state_change(windows, now)
         current_event = self.get_current_event(windows, now)
-        next_event = self.get_next_event(windows, now, next_event_index)
+        next_event = self.get_next_event(windows, now)
 
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)

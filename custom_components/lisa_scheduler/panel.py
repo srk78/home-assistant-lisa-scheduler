@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,9 +13,6 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
-    CONF_PANEL_EVENTS,
-    CONF_PANEL_MATCHES,
-    CONF_PANEL_TRAININGS,
     DOMAIN,
     EVENT_TYPE_CLUB_EVENT,
     EVENT_TYPE_MATCH,
@@ -34,29 +30,7 @@ PANEL_FRONTEND_DIR = Path(__file__).parent / "frontend"
 WS_TYPE_UPCOMING_EVENTS = f"{DOMAIN}/upcoming_events"
 
 _STATIC_REGISTERED_KEY = f"{DOMAIN}_panel_static_registered"
-_PANELS_KEY = f"{DOMAIN}_panels"
-
-# Optional extra sidebar panels: option key -> (url path, title, icon, event types)
-OPTIONAL_PANELS: dict[str, tuple[str, str, str, list[str]]] = {
-    CONF_PANEL_MATCHES: (
-        "lisa-scheduler-matches",
-        "LISA Matches",
-        "mdi:hockey-sticks",
-        [EVENT_TYPE_MATCH],
-    ),
-    CONF_PANEL_TRAININGS: (
-        "lisa-scheduler-trainings",
-        "LISA Trainings",
-        "mdi:run",
-        [EVENT_TYPE_TRAINING],
-    ),
-    CONF_PANEL_EVENTS: (
-        "lisa-scheduler-events",
-        "LISA Events",
-        "mdi:calendar-star",
-        [EVENT_TYPE_CLUB_EVENT],
-    ),
-}
+_PANEL_REGISTERED_KEY = f"{DOMAIN}_panel_registered"
 
 
 def upcoming_events(
@@ -110,12 +84,11 @@ def ws_upcoming_events(
     connection.send_result(msg["id"], {"timezone": timezone, "events": result})
 
 
-async def async_register_panel(
-    hass: HomeAssistant, optional_panels: Iterable[str] = ()
-) -> None:
-    """Register the main sidebar panel and the enabled optional panels.
+async def async_register_panel(hass: HomeAssistant) -> None:
+    """Register the sidebar panel and its websocket API.
 
-    Safe to call repeatedly; panels already registered are left alone.
+    Safe to call repeatedly: the static path and websocket command are added
+    once, and the panel itself only when it is not registered yet.
     """
     if not hass.data.get(_STATIC_REGISTERED_KEY):
         hass.data[_STATIC_REGISTERED_KEY] = True
@@ -124,40 +97,21 @@ async def async_register_panel(
             [StaticPathConfig(PANEL_STATIC_URL, str(PANEL_FRONTEND_DIR), False)]
         )
 
-    registered: set[str] = hass.data.setdefault(_PANELS_KEY, set())
-    if PANEL_URL_PATH not in registered:
-        registered.add(PANEL_URL_PATH)
-        await _register(hass, PANEL_URL_PATH, PANEL_TITLE, PANEL_ICON, None)
-
-    for key in optional_panels:
-        url_path, title, icon, event_types = OPTIONAL_PANELS[key]
-        if url_path in registered:
-            continue
-        registered.add(url_path)
-        await _register(hass, url_path, title, icon, event_types)
-
-
-async def _register(
-    hass: HomeAssistant,
-    url_path: str,
-    title: str,
-    icon: str,
-    event_types: list[str] | None,
-) -> None:
-    config = {"event_types": event_types, "title": title} if event_types else None
+    if hass.data.get(_PANEL_REGISTERED_KEY):
+        return
+    hass.data[_PANEL_REGISTERED_KEY] = True
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name=PANEL_WEB_COMPONENT,
-        frontend_url_path=url_path,
+        frontend_url_path=PANEL_URL_PATH,
         module_url=PANEL_MODULE_URL,
-        sidebar_title=title,
-        sidebar_icon=icon,
+        sidebar_title=PANEL_TITLE,
+        sidebar_icon=PANEL_ICON,
         require_admin=False,
-        config=config,
     )
 
 
 def async_unregister_panel(hass: HomeAssistant) -> None:
-    """Remove every sidebar panel when the last entry is unloaded."""
-    for url_path in hass.data.pop(_PANELS_KEY, set()):
-        frontend.async_remove_panel(hass, url_path)
+    """Remove the sidebar panel when the last entry is unloaded."""
+    if hass.data.pop(_PANEL_REGISTERED_KEY, None):
+        frontend.async_remove_panel(hass, PANEL_URL_PATH)

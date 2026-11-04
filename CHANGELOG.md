@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- The optional LISA Matches, LISA Trainings and LISA Events sidebar panels and their `panel_matches`, `panel_trainings` and `panel_events` options (added in 0.9.0). The main **LISA Schedule** panel, with its All/Matches/Trainings/Events filters, covers the same ground.
+- The `next_event_index` option and the `event_index` attribute of the **Next Event** sensor (added in 0.9.0). A single sensor can only show one event, so the option added nothing; the sensor always shows the next upcoming event. Remove these keys from YAML configuration if you set them.
+
+### Fixed
+
+- Reloading the integration (for example after changing options) no longer registers the panel's static files and websocket command a second time.
+
 ## [0.9.0] - 2026-11-04
 
 ### Added

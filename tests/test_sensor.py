@@ -110,7 +110,6 @@ def test_current_and_next_event_sensors(mock_hass):
     assert current.extra_state_attributes["type"] == "training"
     assert upcoming_sensor.native_value == "Match"
     assert upcoming_sensor.extra_state_attributes["type"] == "match"
-    assert upcoming_sensor.extra_state_attributes["event_index"] == 0
 
 
 def test_current_and_next_event_sensors_report_none(mock_hass):
