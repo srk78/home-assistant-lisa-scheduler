@@ -7,6 +7,16 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Added
+
+- **Next Event** sensor: the title of the next event that has not started yet, or `None`.
+
+### Fixed
+
+- **Current Event** reported the next upcoming event (or one still in its lead time) when nothing was running. It now shows the event in progress and `None` otherwise; its attributes describe that event.
+
 ## [0.7.1] - 2026-11-03
 
 ### Added

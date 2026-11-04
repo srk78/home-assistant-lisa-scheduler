@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Next Event** sensor: the title of the next event that has not started yet, or `None`.
+
+### Fixed
+
+- **Current Event** reported the next upcoming event (or one still in its lead time) when nothing was running. It now shows the event in progress and `None` otherwise; its attributes describe that event.
+
 ## [0.7.1] - 2026-11-03
 
 ### Added

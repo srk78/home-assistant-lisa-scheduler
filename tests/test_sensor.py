@@ -5,7 +5,9 @@ from unittest.mock import MagicMock
 
 from custom_components.lisa_scheduler.coordinator import LISASchedulerCoordinator
 from custom_components.lisa_scheduler.sensor import (
+    LISACurrentEventSensor,
     LISALastUpdateSensor,
+    LISANextEventSensor,
     LISANextEventStartSensor,
 )
 
@@ -94,3 +96,31 @@ def test_last_update_sensor_exposes_stale_error_attributes(mock_hass):
     assert attrs["upstream_partial"] is True
     assert attrs["scraped_event_count"] == 1
     assert attrs["event_window_count"] == 1
+
+
+def test_current_and_next_event_sensors(mock_hass):
+    coordinator = _coordinator(mock_hass)
+    running = {"title": "Training", "event_type": "training", "start_time": "a"}
+    upcoming = {"title": "Match", "event_type": "match", "end_time": "b"}
+    coordinator.data = {"summary": {"current_event": running, "next_event": upcoming}}
+    current = LISACurrentEventSensor(coordinator, _config_entry())
+    upcoming_sensor = LISANextEventSensor(coordinator, _config_entry())
+
+    assert current.native_value == "Training"
+    assert current.extra_state_attributes["type"] == "training"
+    assert upcoming_sensor.native_value == "Match"
+    assert upcoming_sensor.extra_state_attributes["type"] == "match"
+
+
+def test_current_and_next_event_sensors_report_none(mock_hass):
+    coordinator = _coordinator(mock_hass)
+    coordinator.data = {"summary": {"current_event": None, "next_event": None}}
+    current = LISACurrentEventSensor(coordinator, _config_entry())
+    upcoming_sensor = LISANextEventSensor(coordinator, _config_entry())
+
+    assert current.native_value == "None"
+    assert current.extra_state_attributes == {}
+    assert upcoming_sensor.native_value == "None"
+
+    coordinator.data = None
+    assert current.native_value == "None"

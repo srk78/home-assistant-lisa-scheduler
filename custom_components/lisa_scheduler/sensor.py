@@ -35,6 +35,7 @@ async def async_setup_entry(
             LISANextWindowEndSensor(coordinator, config_entry),
             LISANextEventStartSensor(coordinator, config_entry),
             LISACurrentEventSensor(coordinator, config_entry),
+            LISANextEventSensor(coordinator, config_entry),
             LISAEventsTodaySensor(coordinator, config_entry),
             LISAWindowMinutesTodaySensor(coordinator, config_entry),
             LISATotalWindowsSensor(coordinator, config_entry),
@@ -167,8 +168,20 @@ class LISANextEventStartSensor(LISASchedulerSensorBase):
         return None
 
 
+def _event_attributes(event: dict | None) -> dict:
+    if not event:
+        return {}
+    return {
+        "title": event.get("title", ""),
+        "type": event.get("event_type", ""),
+        "start_time": event.get("start_time", ""),
+        "end_time": event.get("end_time", ""),
+        "location": event.get("location", ""),
+    }
+
+
 class LISACurrentEventSensor(LISASchedulerSensorBase):
-    """Name of the current or next event."""
+    """Name of the event in progress, or None."""
 
     def __init__(
         self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
@@ -176,40 +189,43 @@ class LISACurrentEventSensor(LISASchedulerSensorBase):
         super().__init__(coordinator, config_entry, "current_event", "Current Event")
         self._attr_icon = "mdi:calendar"
 
+    def _event(self) -> dict | None:
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("summary", {}).get("current_event")
+
     @property
     def native_value(self) -> str:
-        if not self.coordinator.data:
-            return "No events"
-        summary = self.coordinator.data.get("summary", {})
-        window = summary.get("current_window") or summary.get("next_window")
-        if window and window.get("events"):
-            first = window["events"][0]
-            return first.get("title", "Unknown event")
-        return "No upcoming events"
+        event = self._event()
+        return (event.get("title") or "Unknown event") if event else "None"
 
     @property
     def extra_state_attributes(self) -> dict:
+        return _event_attributes(self._event())
+
+
+class LISANextEventSensor(LISASchedulerSensorBase):
+    """Name of the next event that has not started yet, or None."""
+
+    def __init__(
+        self, coordinator: LISASchedulerCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        super().__init__(coordinator, config_entry, "next_event", "Next Event")
+        self._attr_icon = "mdi:calendar-arrow-right"
+
+    def _event(self) -> dict | None:
         if not self.coordinator.data:
-            return {}
-        summary = self.coordinator.data.get("summary", {})
-        window = summary.get("current_window") or summary.get("next_window")
-        if window and window.get("events"):
-            return {
-                "event_count": len(window["events"]),
-                "events": [
-                    {
-                        "title": e.get("title", ""),
-                        "type": e.get("event_type", ""),
-                        "start_time": e.get("start_time", ""),
-                        "end_time": e.get("end_time", ""),
-                    }
-                    for e in window["events"]
-                ],
-                "window_start": window.get("window_start"),
-                "event_start": window.get("event_start"),
-                "window_end": window.get("window_end"),
-            }
-        return {}
+            return None
+        return self.coordinator.data.get("summary", {}).get("next_event")
+
+    @property
+    def native_value(self) -> str:
+        event = self._event()
+        return (event.get("title") or "Unknown event") if event else "None"
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return _event_attributes(self._event())
 
 
 class LISAEventsTodaySensor(LISASchedulerSensorBase):

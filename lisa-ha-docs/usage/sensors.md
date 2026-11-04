@@ -54,19 +54,29 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 ### sensor.lisa_current_event
 
-**Description**: The name and details of the currently active event, or the next upcoming event when none is active
+**Description**: The event that is in progress right now. The pre-event lead time does not count; the state is `None` until the event starts and again once it has ended.
 
-**State**: String (event name or description)
+**State**: String (event title, or `None`)
 
-**Attributes**:
-- `event_count`: Number of events grouped into this window
-- `events`: List of individual event details
-- `window_start`: Window start datetime
-- `window_end`: Window end datetime
+**Attributes** (empty when the state is `None`):
+- `title`, `type` (`match`, `training` or `event`), `start_time`, `end_time`, `location`
 
 **Use cases**:
-- Show what is happening (or coming up) on a dashboard card
-- Use event name in notification messages via `state_attr('sensor.lisa_current_event', 'events')`
+- Show what is happening right now on a dashboard card
+- Use event name in notification messages via `state_attr('sensor.lisa_current_event', 'title')`
+
+---
+
+### sensor.lisa_next_event
+
+**Description**: The next event that has not started yet, regardless of whether its pre-event window is already open. Events left out of scheduling (see `include_club_events`) are not reported.
+
+**State**: String (event title, or `None`)
+
+**Attributes**: same as `sensor.lisa_current_event`
+
+**Use cases**:
+- Show "up next" on a dashboard card
 
 ---
 

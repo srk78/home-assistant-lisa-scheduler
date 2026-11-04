@@ -164,6 +164,24 @@ class EventScheduler:
         future = [w for w in windows if w.window_start > now]
         return min(future, key=lambda w: w.window_start) if future else None
 
+    def get_current_event(
+        self, windows: list[EventWindow], now: datetime | None = None
+    ) -> Event | None:
+        """Return the scheduled event in progress, not one still in its lead time."""
+        if now is None:
+            now = datetime.now()
+        running = [e for w in windows for e in w.events if e.start_time <= now < e.end_time]
+        return min(running, key=lambda e: e.start_time) if running else None
+
+    def get_next_event(
+        self, windows: list[EventWindow], now: datetime | None = None
+    ) -> Event | None:
+        """Return the earliest scheduled event that has not started yet."""
+        if now is None:
+            now = datetime.now()
+        upcoming = [e for w in windows for e in w.events if e.start_time > now]
+        return min(upcoming, key=lambda e: e.start_time) if upcoming else None
+
     def get_next_state_change(
         self, windows: list[EventWindow], now: datetime | None = None
     ) -> tuple[datetime | None, bool]:
@@ -186,6 +204,8 @@ class EventScheduler:
         current = self.get_current_window(windows, now)
         next_w = self.get_next_window(windows, now)
         next_change, will_be_active = self.get_next_state_change(windows, now)
+        current_event = self.get_current_event(windows, now)
+        next_event = self.get_next_event(windows, now)
 
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
@@ -207,6 +227,8 @@ class EventScheduler:
             "is_event_active": self.is_event_active(windows, now),
             "current_window": current.to_dict() if current else None,
             "next_window": next_w.to_dict() if next_w else None,
+            "current_event": current_event.to_dict() if current_event else None,
+            "next_event": next_event.to_dict() if next_event else None,
             "next_state_change": next_change.isoformat() if next_change else None,
             "next_state_active": will_be_active,
             "windows_today": len(today_windows),

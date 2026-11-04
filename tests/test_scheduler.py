@@ -271,3 +271,39 @@ def test_event_window_to_dict():
     assert "event_count" in d
     assert d["event_count"] == 1
     assert "events" in d
+
+
+def test_current_event_ignores_lead_time_and_next_event_skips_running():
+    base = datetime(2026, 11, 4, 10, 0)
+    first = Event(EVENT_TYPE_TRAINING, base, base + timedelta(hours=1), title="First")
+    second = Event(
+        EVENT_TYPE_TRAINING,
+        base + timedelta(hours=3),
+        base + timedelta(hours=4),
+        title="Second",
+    )
+    scheduler = EventScheduler(pre_event_triggers=[120])
+    windows = scheduler.calculate_event_windows([first, second], now=base)
+
+    # In the lead time of the first event: nothing running, first is next.
+    lead = base - timedelta(minutes=30)
+    assert scheduler.get_current_event(windows, lead) is None
+    assert scheduler.get_next_event(windows, lead) is first
+
+    # While the first runs: it is current, the second is next.
+    during = base + timedelta(minutes=30)
+    assert scheduler.get_current_event(windows, during) is first
+    assert scheduler.get_next_event(windows, during) is second
+
+    # The end time is exclusive; between events nothing is current.
+    gap = base + timedelta(hours=1)
+    assert scheduler.get_current_event(windows, gap) is None
+    assert scheduler.get_next_event(windows, gap) is second
+
+    # After everything has finished there is neither.
+    done = base + timedelta(hours=5)
+    assert scheduler.get_current_event(windows, done) is None
+    assert scheduler.get_next_event(windows, done) is None
+    summary = scheduler.get_schedule_summary(windows, done)
+    assert summary["current_event"] is None
+    assert summary["next_event"] is None
