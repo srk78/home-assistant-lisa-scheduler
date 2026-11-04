@@ -31,6 +31,7 @@ cards:
         name: Current or next
       - entity: sensor.lisa_scheduler_next_event_start
         name: Next event
+        format: datetime
       - entity: sensor.lisa_scheduler_last_schedule_update
         name: Last update
   - type: horizontal-stack

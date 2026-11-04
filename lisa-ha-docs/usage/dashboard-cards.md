@@ -14,7 +14,9 @@ This library gives club operators copy-paste Home Assistant dashboard panels for
 
 ## Before You Copy
 
-Entity IDs may differ in your Home Assistant instance. Check **Developer Tools -> States** and search for `lisa_scheduler` before pasting a card. The snippets below use the documented entity naming pattern:
+Entity IDs may differ in your Home Assistant instance. Check **Developer Tools -> States** and search for `lisa_scheduler` before pasting a card. The timing sensors are timestamps, which Home Assistant normally shows as a relative time such as "in 3 hours". The snippets add `format: datetime` to entities-card rows, and use templates for Mushroom/Markdown cards, so the exact time with minutes is shown instead.
+
+The snippets below use the documented entity naming pattern:
 
 - `sensor.lisa_scheduler_current_event`
 - `sensor.lisa_scheduler_next_window_start`
@@ -77,8 +79,10 @@ entities:
     name: Event active
   - entity: sensor.lisa_scheduler_next_window_start
     name: Next window opens
+    format: datetime
   - entity: sensor.lisa_scheduler_next_event_start
     name: Next event starts
+    format: datetime
   - entity: sensor.lisa_scheduler_events_today
     name: Events today
   - entity: sensor.lisa_scheduler_last_schedule_update

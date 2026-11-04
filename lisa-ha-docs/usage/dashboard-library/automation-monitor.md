@@ -28,10 +28,13 @@ cards:
     entities:
       - entity: sensor.lisa_scheduler_next_window_start
         name: Next window opens
+        format: datetime
       - entity: sensor.lisa_scheduler_next_event_start
         name: Next event starts
+        format: datetime
       - entity: sensor.lisa_scheduler_next_window_end
         name: Next window closes
+        format: datetime
 ```
 
 ## Enhanced Version

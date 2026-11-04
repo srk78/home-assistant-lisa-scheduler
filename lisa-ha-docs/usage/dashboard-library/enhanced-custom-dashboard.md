@@ -35,7 +35,7 @@ cards:
   - type: custom:mushroom-template-card
     entity: sensor.lisa_scheduler_current_event
     primary: "{{ states('sensor.lisa_scheduler_current_event') }}"
-    secondary: "Next: {{ states('sensor.lisa_scheduler_next_event_start') }}"
+    secondary: "Next: {{ as_local(as_datetime(states('sensor.lisa_scheduler_next_event_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_event_start') else '–' }}"
     icon: mdi:calendar-star
     icon_color: >-
       {% if is_state('binary_sensor.lisa_scheduler_event_active', 'on') %}
@@ -87,13 +87,13 @@ cards:
     entity: sensor.lisa_scheduler_window_minutes_today
     name: Window minutes
     icon: mdi:timer
-  - type: custom:mushroom-entity-card
-    entity: sensor.lisa_scheduler_next_window_start
-    name: Window opens
+  - type: custom:mushroom-template-card
+    primary: Window opens
+    secondary: "{{ as_local(as_datetime(states('sensor.lisa_scheduler_next_window_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_window_start') else '–' }}"
     icon: mdi:clock-start
-  - type: custom:mushroom-entity-card
-    entity: sensor.lisa_scheduler_next_window_end
-    name: Window closes
+  - type: custom:mushroom-template-card
+    primary: Window closes
+    secondary: "{{ as_local(as_datetime(states('sensor.lisa_scheduler_next_window_end'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_window_end') else '–' }}"
     icon: mdi:clock-end
 ```
 

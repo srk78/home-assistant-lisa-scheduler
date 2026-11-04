@@ -17,9 +17,9 @@ cards:
     content: |
       # {{ states('sensor.lisa_scheduler_current_event') }}
 
-      **Next event:** {{ states('sensor.lisa_scheduler_next_event_start') }}
+      **Next event:** {{ as_local(as_datetime(states('sensor.lisa_scheduler_next_event_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_event_start') else '–' }}
 
-      **Window opens:** {{ states('sensor.lisa_scheduler_next_window_start') }}
+      **Window opens:** {{ as_local(as_datetime(states('sensor.lisa_scheduler_next_window_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_window_start') else '–' }}
 
       **Events today:** {{ states('sensor.lisa_scheduler_events_today') }}
   - type: glance
@@ -46,7 +46,7 @@ cards:
     subtitle: Club schedule
   - type: custom:mushroom-template-card
     primary: "Next event"
-    secondary: "{{ states('sensor.lisa_scheduler_next_event_start') }}"
+    secondary: "{{ as_local(as_datetime(states('sensor.lisa_scheduler_next_event_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_event_start') else '–' }}"
     icon: mdi:calendar-clock
     icon_color: blue
     layout: vertical
@@ -78,9 +78,9 @@ cards:
       - type: entity
         entity: sensor.lisa_scheduler_events_today
         name: Events today
-      - type: entity
-        entity: sensor.lisa_scheduler_next_window_start
-        name: Next window
+      - type: template
+        icon: mdi:clock-start
+        content: "Next window: {{ as_local(as_datetime(states('sensor.lisa_scheduler_next_window_start'))).strftime('%a %H:%M') if has_value('sensor.lisa_scheduler_next_window_start') else '–' }}"
 ```
 
 ## Operator Notes

@@ -26,8 +26,10 @@ cards:
         name: Loaded windows
       - entity: sensor.lisa_scheduler_next_window_start
         name: Next window opens
+        format: datetime
       - entity: sensor.lisa_scheduler_next_window_end
         name: Next window closes
+        format: datetime
   - type: history-graph
     title: Active state history
     hours_to_show: 12
