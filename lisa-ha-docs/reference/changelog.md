@@ -7,6 +7,12 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [0.8.1] - 2026-11-04
+
+### Changed
+
+- Dashboard snippets show the exact time with minutes for Next Window Start, Next Window End and Next Event Start (entities cards use `format: datetime`; Mushroom, chip and Markdown cards use templates) instead of a relative time such as "in 3 hours" or a raw timestamp.
+
 ## [0.8.0] - 2026-11-04
 
 ### Added
@@ -183,6 +189,7 @@ If you were using event name triggers from versions before 0.3.0, update them to
 
 | Version | Date | Key Changes |
 |---------|------|-------------|
+| 0.8.1 | 2026-11-04 | Dashboard snippets show exact times with minutes |
 | 0.8.0 | 2026-11-04 | Current Event shows only the running event, Next Event sensor |
 | 0.7.1 | 2026-11-03 | `include_club_events` option |
 | 0.7.0 | 2026-11-03 | Club events from the schedule API |

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-11-04
+
+### Changed
+
+- Dashboard snippets show the exact time with minutes for Next Window Start, Next Window End and Next Event Start (entities cards use `format: datetime`; Mushroom, chip and Markdown cards use templates) instead of a relative time such as "in 3 hours" or a raw timestamp.
+
 ## [0.8.0] - 2026-11-04
 
 ### Added
