@@ -100,7 +100,14 @@ def test_last_update_sensor_exposes_stale_error_attributes(mock_hass):
 
 def test_current_and_next_event_sensors(mock_hass):
     coordinator = _coordinator(mock_hass)
-    running = {"title": "Training", "event_type": "training", "start_time": "a"}
+    running = {
+        "title": "Training",
+        "event_type": "training",
+        "start_time": "a",
+        "home_logo_url": "https://images.example/home.png",
+        "away_logo_url": "https://images.example/away.png",
+        "image_url": None,
+    }
     upcoming = {"title": "Match", "event_type": "match", "end_time": "b"}
     coordinator.data = {"summary": {"current_event": running, "next_event": upcoming}}
     current = LISACurrentEventSensor(coordinator, _config_entry())
@@ -108,6 +115,12 @@ def test_current_and_next_event_sensors(mock_hass):
 
     assert current.native_value == "Training"
     assert current.extra_state_attributes["type"] == "training"
+    assert current.extra_state_attributes["home_logo_url"] == (
+        "https://images.example/home.png"
+    )
+    assert current.extra_state_attributes["away_logo_url"] == (
+        "https://images.example/away.png"
+    )
     assert upcoming_sensor.native_value == "Match"
     assert upcoming_sensor.extra_state_attributes["type"] == "match"
 

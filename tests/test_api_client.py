@@ -196,6 +196,61 @@ async def test_fetch_maps_every_api_event_type():
 
 
 @pytest.mark.asyncio
+async def test_fetch_maps_logo_and_image_urls():
+    client, session = _client()
+    session.get.return_value = _Response(
+        payload=_payload(
+            [
+                _event(
+                    id="game",
+                    type="game",
+                    homeLogoUrl="https://images.example/home.png",
+                    awayLogoUrl="https://images.example/away.png",
+                    imageUrl=None,
+                ),
+                _event(
+                    id="club",
+                    type="event",
+                    startsAt="2026-10-30T11:00:00Z",
+                    endsAt="2026-10-30T12:00:00Z",
+                    homeLogoUrl=None,
+                    awayLogoUrl=None,
+                    imageUrl="https://storage.example/EventLogo/1.png",
+                ),
+                # Older API versions do not send the fields at all.
+                _event(
+                    id="old",
+                    type="training",
+                    startsAt="2026-10-30T13:00:00Z",
+                    endsAt="2026-10-30T14:00:00Z",
+                ),
+            ]
+        )
+    )
+
+    game, club, old = (await client.async_fetch()).events
+
+    assert game.home_logo_url == "https://images.example/home.png"
+    assert game.away_logo_url == "https://images.example/away.png"
+    assert game.image_url is None
+    assert club.image_url == "https://storage.example/EventLogo/1.png"
+    assert club.home_logo_url is None
+    assert (old.home_logo_url, old.away_logo_url, old.image_url) == (None, None, None)
+    assert game.to_dict()["home_logo_url"] == "https://images.example/home.png"
+
+
+@pytest.mark.asyncio
+async def test_fetch_rejects_non_string_logo_url():
+    client, session = _client()
+    session.get.return_value = _Response(
+        payload=_payload([_event(homeLogoUrl=123)])
+    )
+
+    with pytest.raises(ScheduleApiResponseError):
+        await client.async_fetch()
+
+
+@pytest.mark.asyncio
 async def test_fetch_can_include_external_events():
     client, session = _client(include_external=True)
     session.get.return_value = _Response(

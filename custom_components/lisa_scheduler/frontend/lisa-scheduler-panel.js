@@ -82,6 +82,16 @@ class LisaSchedulerPanel extends HTMLElement {
     return new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   }
 
+  // Club logos for matches (home first), the event image for club events.
+  _renderImages(event) {
+    const urls = [event.home_logo_url, event.away_logo_url, event.image_url].filter(Boolean);
+    if (!urls.length) return "";
+    const images = urls
+      .map((url) => `<img src="${escapeHtml(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`)
+      .join("");
+    return `<div class="images">${images}</div>`;
+  }
+
   _renderBody() {
     if (this._error) {
       return `<div class="message error">${escapeHtml(this._error)}</div>`;
@@ -109,6 +119,7 @@ class LisaSchedulerPanel extends HTMLElement {
         const end = event.end_time_estimated ? "~" : "";
         html += `
           <div class="event ${escapeHtml(event.event_type)}">
+            ${this._renderImages(event)}
             <div class="time">${this._formatTime(event.start_time)}<span>${end}${this._formatTime(event.end_time)}</span></div>
             <div class="details">
               <div class="title">${escapeHtml(event.title || type)}</div>
@@ -186,6 +197,8 @@ class LisaSchedulerPanel extends HTMLElement {
         .event.match { border-left-color: var(--accent-color, #ff9800); }
         .event.training { border-left-color: var(--primary-color, #03a9f4); }
         .event.event { border-left-color: var(--success-color, #43a047); }
+        .images { display: flex; gap: 4px; align-items: center; }
+        .images img { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; }
         .time { min-width: 56px; font-weight: 500; font-variant-numeric: tabular-nums; }
         .time span { display: block; font-weight: 400; color: var(--secondary-text-color); }
         .details { flex: 1; min-width: 0; }

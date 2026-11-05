@@ -177,6 +177,9 @@ def _event_attributes(event: dict | None) -> dict:
         "start_time": event.get("start_time", ""),
         "end_time": event.get("end_time", ""),
         "location": event.get("location", ""),
+        "home_logo_url": event.get("home_logo_url"),
+        "away_logo_url": event.get("away_logo_url"),
+        "image_url": event.get("image_url"),
     }
 
 

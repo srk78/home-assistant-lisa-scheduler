@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Club logos for matches (`home_logo_url`, `away_logo_url`) and the image of club events (`image_url`), read from the schedule API (`homeLogoUrl`, `awayLogoUrl`, `imageUrl`; they require a schedule API version that sends them, and are empty otherwise). They are exposed as attributes of the **Current Event** and **Next Event** sensors and shown in the sidebar panel.
+
 ## [0.9.1] - 2026-11-04
 
 ### Removed

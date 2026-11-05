@@ -60,6 +60,8 @@ LISA Scheduler provides sensors and binary sensors to monitor schedule state. Th
 
 **Attributes** (empty when the state is `None`):
 - `title`, `type` (`match`, `training` or `event`), `start_time`, `end_time`, `location`
+- `home_logo_url` and `away_logo_url`: the club logos of a match (otherwise empty)
+- `image_url`: the image of a club event (otherwise empty)
 
 **Use cases**:
 - Show what is happening right now on a dashboard card

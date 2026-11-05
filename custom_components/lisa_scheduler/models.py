@@ -21,6 +21,9 @@ class Event:
     end_time_estimated: bool = False
     at_club_venue: bool | None = None
     venue_id: str | None = None
+    home_logo_url: str | None = None
+    away_logo_url: str | None = None
+    image_url: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return a serializable representation for entities and HA events."""
@@ -35,4 +38,7 @@ class Event:
             "end_time_estimated": self.end_time_estimated,
             "at_club_venue": self.at_club_venue,
             "venue_id": self.venue_id,
+            "home_logo_url": self.home_logo_url,
+            "away_logo_url": self.away_logo_url,
+            "image_url": self.image_url,
         }

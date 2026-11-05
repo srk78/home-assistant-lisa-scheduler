@@ -7,6 +7,12 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Added
+
+- Club logos for matches (`home_logo_url`, `away_logo_url`) and the image of club events (`image_url`), read from the schedule API (`homeLogoUrl`, `awayLogoUrl`, `imageUrl`; they require a schedule API version that sends them, and are empty otherwise). They are exposed as attributes of the **Current Event** and **Next Event** sensors and shown in the sidebar panel.
+
 ## [0.9.1] - 2026-11-04
 
 ### Removed

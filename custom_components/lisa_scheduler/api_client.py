@@ -309,6 +309,13 @@ class LisaScheduleApiClient:
             ),
             at_club_venue=at_club_venue,
             venue_id=_optional_string(value["venueId"], "event.venueId"),
+            home_logo_url=_optional_string(
+                value.get("homeLogoUrl"), "event.homeLogoUrl"
+            ),
+            away_logo_url=_optional_string(
+                value.get("awayLogoUrl"), "event.awayLogoUrl"
+            ),
+            image_url=_optional_string(value.get("imageUrl"), "event.imageUrl"),
         )
 
 
