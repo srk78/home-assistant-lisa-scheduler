@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,8 +25,22 @@ PANEL_TITLE = "LISA Schedule"
 PANEL_ICON = "mdi:calendar-clock"
 PANEL_WEB_COMPONENT = "lisa-scheduler-panel"
 PANEL_STATIC_URL = f"/{DOMAIN}_static"
-PANEL_MODULE_URL = f"{PANEL_STATIC_URL}/lisa-scheduler-panel.js"
 PANEL_FRONTEND_DIR = Path(__file__).parent / "frontend"
+
+
+def _integration_version() -> str:
+    try:
+        manifest = json.loads((Path(__file__).parent / "manifest.json").read_text())
+        return str(manifest["version"])
+    except (OSError, ValueError, KeyError):
+        return "0"
+
+
+# The version in the query string makes browsers fetch the script again after an
+# update; without it a cached copy of the previous release can keep running.
+PANEL_MODULE_URL = (
+    f"{PANEL_STATIC_URL}/lisa-scheduler-panel.js?v={_integration_version()}"
+)
 
 WS_TYPE_UPCOMING_EVENTS = f"{DOMAIN}/upcoming_events"
 

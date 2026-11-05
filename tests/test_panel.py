@@ -1,6 +1,8 @@
 """Tests for the upcoming events sidebar panel."""
 
+import json
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -111,6 +113,12 @@ async def test_register_panel_is_idempotent():
 
     register.assert_awaited_once()
     assert register.call_args.kwargs["frontend_url_path"] == "lisa-scheduler"
+    manifest = json.loads(
+        (Path(panel_module.__file__).parent / "manifest.json").read_text()
+    )
+    assert register.call_args.kwargs["module_url"] == (
+        f"/lisa_scheduler_static/lisa-scheduler-panel.js?v={manifest['version']}"
+    )
     hass.http.async_register_static_paths.assert_awaited_once()
 
 

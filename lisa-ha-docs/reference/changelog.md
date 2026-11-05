@@ -7,6 +7,12 @@ tags: [reference, changelog]
 
 All notable changes to the LISA Scheduler integration.
 
+## [Unreleased]
+
+### Fixed
+
+- The sidebar panel's script URL now includes the integration version, so browsers and the mobile app load the new panel after an update instead of running a cached copy of the previous one (new features such as the club logos did not appear until the frontend cache was cleared).
+
 ## [0.10.0] - 2026-11-05
 
 ### Added
